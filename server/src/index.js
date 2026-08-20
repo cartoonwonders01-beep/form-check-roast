@@ -5,10 +5,11 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import roastRouter from './routes/roast.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '../.env') });
+dotenv.config(); // fallback to cwd
 
 const app = express();
 const PORT = process.env.PORT || 3001;
