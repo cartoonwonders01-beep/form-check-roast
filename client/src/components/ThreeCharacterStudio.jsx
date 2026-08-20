@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Eye, Flame, Volume2, Sparkles, RefreshCw } from 'lucide-react';
+import { Eye, Flame, Volume2, Sparkles } from 'lucide-react';
 
 const EXERCISE_OPTIMAL_ANGLES = {
-  pushup: 'side',       // Best for spinal plank, hip sag & elbow depth
-  squat: 'iso',         // Best for hip depth, knee tracking & chest angle
-  situp: 'side',        // Best for spinal curling & crunch height
-  plank: 'side',        // Best for straight line check
+  pushup: 'side',
+  squat: 'iso',
+  situp: 'side',
+  plank: 'side',
 };
 
 const CAMERA_PRESETS = [
-  { id: 'auto', label: 'Smart Angle', desc: 'Auto-picked for exercise' },
+  { id: 'auto', label: 'Smart Angle', desc: 'Optimal for movement' },
   { id: 'side', label: 'Side (90°)', desc: 'Spine & Depth' },
-  { id: 'iso', label: '3D Quarter (45°)', desc: 'Full Depth' },
-  { id: 'front', label: 'Front (0°)', desc: 'Elbow/Knee Flare' },
-  { id: 'top', label: 'Overhead (3/4)', desc: 'Hand Placement' },
+  { id: 'iso', label: '3D Quarter (45°)', desc: 'Depth & Form' },
+  { id: 'front', label: 'Front (0°)', desc: 'Symmetry & Flare' },
+  { id: 'top', label: 'Overhead (3/4)', desc: 'Hand/Arm Track' },
 ];
 
 export default function ThreeCharacterStudio({ 
@@ -38,213 +38,265 @@ export default function ThreeCharacterStudio({
     const container = containerRef.current;
     if (!container) return;
 
-    // ── 1. SCENE & CAMERA ─────────────────────────────────────────────
+    // ── 1. HIGH-END WEBGL RENDERER & CAMERA ───────────────────────────
     const scene = new THREE.Scene();
     const width = container.clientWidth || 380;
     const height = container.clientHeight || 280;
 
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
     camera.position.set(0, 1.1, 3.2);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.1;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // ── 2. STUDIO LIGHTING RIG ────────────────────────────────────────
-    const keyLight = new THREE.DirectionalLight(0xfff5ea, 2.2);
+    // ── 2. CINEMATIC 3-POINT STUDIO LIGHTING ──────────────────────────
+    // Key light with soft shadow
+    const keyLight = new THREE.DirectionalLight(0xfff8f0, 2.4);
     keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
     keyLight.shadow.bias = -0.0005;
-    keyLight.shadow.radius = 3;
+    keyLight.shadow.radius = 2.5;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
+    // Cool rim light (accentuates anatomical muscle definition)
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.6);
     rimLight.position.set(-3.5, 3.0, -3.0);
     scene.add(rimLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    // Soft warm fill light
+    const fillLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+    fillLight.position.set(-2.0, 1.0, 3.0);
+    scene.add(fillLight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    // Floor Shadow
+    // Soft studio floor shadow
     const floorGeo = new THREE.CircleGeometry(1.6, 64);
     const floorMat = new THREE.MeshStandardMaterial({ 
       color: 0x000000, 
       roughness: 0.8,
       transparent: true,
-      opacity: 0.12
+      opacity: 0.14
     });
     const floorPlane = new THREE.Mesh(floorGeo, floorMat);
     floorPlane.rotation.x = -Math.PI / 2;
-    floorPlane.position.y = -0.55;
+    floorPlane.position.y = -0.58;
     floorPlane.receiveShadow = true;
     scene.add(floorPlane);
 
-    // ── 3. MATERIALS PIPELINE ─────────────────────────────────────────
+    // ── 3. ANATOMICALLY ORGANIC MATERIALS ─────────────────────────────
     const isHumanoid = character === 'humanoid';
     const isWoody = character === 'woody';
     const isVader = character === 'vader';
 
-    // Seven.app Athletic Humanoid Materials
-    const matSkin = new THREE.MeshStandardMaterial({ 
-      color: isHumanoid ? 0xfbcfe8 : isWoody ? 0xfcd34d : isVader ? 0x111318 : 0xfbbf24,
-      roughness: isHumanoid ? 0.6 : 0.2,
-      metalness: 0.05
+    // Realistic Organic Human Skin Material with Subsurface Scattering sheen
+    const matHumanSkin = new THREE.MeshPhysicalMaterial({
+      color: 0xf3c1a5, // Natural athletic skin tone
+      roughness: 0.55,
+      metalness: 0.0,
+      clearcoat: 0.15,
+      clearcoatRoughness: 0.4,
+      sheen: 0.35,
+      sheenColor: new THREE.Color(0xffd1ba)
     });
 
+    const matLegoSkin = new THREE.MeshPhysicalMaterial({
+      color: isWoody ? 0xfcd34d : isVader ? 0x111318 : 0xfbbf24,
+      roughness: 0.18,
+      clearcoat: 0.85
+    });
+
+    const matSkin = isHumanoid ? matHumanSkin : matLegoSkin;
+
+    // Athletic compression shirt & shorts
     const matShirt = new THREE.MeshStandardMaterial({
-      color: isHumanoid ? 0xf97316 : isWoody ? 0xf59e0b : isVader ? 0x18181b : 0xdc2626,
-      roughness: 0.5
+      color: isHumanoid ? 0x0ea5e9 : isWoody ? 0xf59e0b : isVader ? 0x18181b : 0xdc2626, // Cyan athletic tee
+      roughness: 0.65
     });
 
     const matShorts = new THREE.MeshStandardMaterial({
       color: isHumanoid ? 0x1e293b : isWoody ? 0x1d4ed8 : isVader ? 0x090a0f : 0x2563eb,
-      roughness: 0.6
+      roughness: 0.7
     });
 
     const matShoes = new THREE.MeshStandardMaterial({
       color: isHumanoid ? 0xffffff : 0x18181b,
-      roughness: 0.4
+      roughness: 0.35
     });
 
-    // ── 4. BUILD ATHLETIC HUMANOID RIG (Seven.app Style) ───────────────
+    const matHair = new THREE.MeshStandardMaterial({
+      color: 0x2b1d14, // Dark brown natural hair
+      roughness: 0.85
+    });
+
+    // ── 4. BUILD ORGANIC ANATOMICAL HUMAN RIG ─────────────────────────
     const rootModel = new THREE.Group();
     scene.add(rootModel);
 
-    // PELVIS / HIPS
+    // ROOT HIPS & PELVIS
     const pelvis = new THREE.Group();
     rootModel.add(pelvis);
 
-    const pelvisGeo = isHumanoid 
-      ? new THREE.CylinderGeometry(0.16, 0.14, 0.18, 24)
-      : new THREE.CylinderGeometry(0.12, 0.12, 0.36, 24);
-    const pelvisMesh = new THREE.Mesh(pelvisGeo, matShorts);
-    if (!isHumanoid) pelvisMesh.rotation.z = Math.PI / 2;
+    // Contoured Pelvic Girdle & Glutes
+    const pelvisMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.12, 16, 24), matShorts);
+    pelvisMesh.rotation.z = Math.PI / 2;
     pelvisMesh.castShadow = true;
     pelvis.add(pelvisMesh);
 
-    // SPINE / TORSO
+    // SPINE / TORSO GROUP (V-Taper Athletic Shape)
     const torsoGroup = new THREE.Group();
-    torsoGroup.position.y = 0.10;
+    torsoGroup.position.y = 0.08;
     pelvis.add(torsoGroup);
 
-    // Athletic Tapered Chest & Ribcage
-    const chestGeo = isHumanoid
-      ? new THREE.CylinderGeometry(0.23, 0.17, 0.44, 24)
-      : new THREE.CylinderGeometry(0.24, 0.30, 0.44, 4, 1, false, Math.PI / 4);
-    const chestMesh = new THREE.Mesh(chestGeo, matShirt);
-    chestMesh.position.y = 0.22;
+    // Abdominal Core
+    const absMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.14, 0.16, 24), matShirt);
+    absMesh.position.y = 0.08;
+    absMesh.castShadow = true;
+    torsoGroup.add(absMesh);
+
+    // Pectoral Chest & Lats (Organic V-Taper)
+    const chestGroup = new THREE.Group();
+    chestGroup.position.y = 0.18;
+    torsoGroup.add(chestGroup);
+
+    const chestMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.22, 24), matShirt);
+    chestMesh.position.y = 0.10;
     chestMesh.castShadow = true;
-    torsoGroup.add(chestMesh);
+    chestGroup.add(chestMesh);
+
+    // Pectoral Muscle Contours (Left & Right)
+    const pecGeo = new THREE.CapsuleGeometry(0.06, 0.08, 12, 16);
+    const leftPec = new THREE.Mesh(pecGeo, matShirt);
+    leftPec.position.set(-0.08, 0.12, 0.11);
+    leftPec.rotation.z = Math.PI / 3.5;
+    leftPec.rotation.x = -Math.PI / 8;
+    chestGroup.add(leftPec);
+
+    const rightPec = new THREE.Mesh(pecGeo, matShirt);
+    rightPec.position.set(0.08, 0.12, 0.11);
+    rightPec.rotation.z = -Math.PI / 3.5;
+    rightPec.rotation.x = -Math.PI / 8;
+    chestGroup.add(rightPec);
 
     // NECK & HEAD
     const neckGroup = new THREE.Group();
-    neckGroup.position.y = 0.48;
+    neckGroup.position.y = 0.42;
     torsoGroup.add(neckGroup);
 
-    const headGeo = isHumanoid
-      ? new THREE.SphereGeometry(0.15, 24, 24)
-      : new THREE.CylinderGeometry(0.17, 0.17, 0.28, 32);
-    const headMesh = new THREE.Mesh(headGeo, matSkin);
-    headMesh.position.y = 0.14;
+    const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.10, 20), matSkin);
+    neckMesh.position.y = 0.05;
+    neckMesh.castShadow = true;
+    neckGroup.add(neckMesh);
+
+    // Anatomical Head (Cranium + Jaw)
+    const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.135, 24, 24), matSkin);
+    headMesh.position.set(0, 0.17, 0.02);
+    headMesh.scale.set(0.92, 1.08, 1.0);
     headMesh.castShadow = true;
     neckGroup.add(headMesh);
 
-    // Hair / Headband for Humanoid
-    if (isHumanoid) {
-      const hairGeo = new THREE.SphereGeometry(0.155, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.5);
-      const hairMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
-      const hairMesh = new THREE.Mesh(hairGeo, hairMat);
-      hairMesh.position.y = 0.16;
-      neckGroup.add(hairMesh);
-    } else if (character === 'lego') {
-      const studGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.07, 24);
-      const studMesh = new THREE.Mesh(studGeo, matSkin);
-      studMesh.position.y = 0.31;
-      neckGroup.add(studMesh);
-    }
+    // Styled Athletic Hair
+    const hairMesh = new THREE.Mesh(new THREE.SphereGeometry(0.142, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.58), matHair);
+    hairMesh.position.set(0, 0.19, -0.01);
+    neckGroup.add(hairMesh);
 
-    // ── ARMS (Deltoid -> Bicep -> Elbow -> Forearm -> Hand) ───────────
-    const makeArm = (isLeft) => {
+    // ── ANATOMICAL ARMS (Deltoid -> Bicep/Tricep -> Elbow -> Forearm -> Hand) ──
+    const makeOrganicArm = (isLeft) => {
       const shoulderJoint = new THREE.Group();
-      shoulderJoint.position.set(isLeft ? -0.28 : 0.28, 0.38, 0);
+      shoulderJoint.position.set(isLeft ? -0.25 : 0.25, 0.32, 0);
       torsoGroup.add(shoulderJoint);
 
-      // Deltoid
-      const deltoid = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), matShirt);
+      // Rounded Deltoid Cap
+      const deltoid = new THREE.Mesh(new THREE.SphereGeometry(0.082, 16, 16), matShirt);
+      deltoid.scale.set(1.0, 1.2, 0.9);
       shoulderJoint.add(deltoid);
 
-      // Upper Arm / Bicep
-      const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.22, 16), matSkin);
-      upperArm.position.y = -0.11;
-      upperArm.castShadow = true;
-      shoulderJoint.add(upperArm);
+      // Bicep / Tricep Upper Arm (Smooth Capsule)
+      const bicepMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.16, 16, 20), matSkin);
+      bicepMesh.position.y = -0.11;
+      bicepMesh.castShadow = true;
+      shoulderJoint.add(bicepMesh);
 
       // Elbow Joint
       const elbowJoint = new THREE.Group();
       elbowJoint.position.y = -0.22;
       shoulderJoint.add(elbowJoint);
 
-      // Forearm
-      const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.20, 16), matSkin);
-      forearm.position.y = -0.10;
-      forearm.castShadow = true;
-      elbowJoint.add(forearm);
+      // Forearm (Tapered from elbow to wrist)
+      const forearmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.20, 16), matSkin);
+      forearmMesh.position.y = -0.10;
+      forearmMesh.castShadow = true;
+      elbowJoint.add(forearmMesh);
 
-      // Hand
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), matSkin);
-      hand.position.y = -0.22;
-      hand.castShadow = true;
-      elbowJoint.add(hand);
+      // Wrist & Hand with palm contour
+      const handMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.038, 0.06, 12, 16), matSkin);
+      handMesh.position.y = -0.22;
+      handMesh.scale.set(1.1, 1.0, 0.6);
+      handMesh.castShadow = true;
+      elbowJoint.add(handMesh);
 
       return { shoulderJoint, elbowJoint };
     };
 
-    const leftArm = makeArm(true);
-    const rightArm = makeArm(false);
+    const leftArm = makeOrganicArm(true);
+    const rightArm = makeOrganicArm(false);
 
-    // ── LEGS (Hip -> Thigh -> Knee -> Calf -> Athletic Shoes) ─────────
-    const makeLeg = (isLeft) => {
+    // ── ANATOMICAL LEGS (Glute/Hip -> Quad -> Knee -> Calf -> Sneakers) ──
+    const makeOrganicLeg = (isLeft) => {
       const hipJoint = new THREE.Group();
-      hipJoint.position.set(isLeft ? -0.12 : 0.12, -0.08, 0);
+      hipJoint.position.set(isLeft ? -0.11 : 0.11, -0.06, 0);
       pelvis.add(hipJoint);
 
-      // Thigh / Quad
-      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.065, 0.26, 16), isHumanoid ? matSkin : matShorts);
-      thigh.position.y = -0.13;
-      thigh.castShadow = true;
-      hipJoint.add(thigh);
+      // Thigh / Quadriceps (Tapered athletic capsule)
+      const thighMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.22, 16, 20), isHumanoid ? matSkin : matShorts);
+      thighMesh.position.y = -0.14;
+      thighMesh.castShadow = true;
+      hipJoint.add(thighMesh);
+
+      // Shorts Leg Cuff
+      if (isHumanoid) {
+        const cuffMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.08, 0.12, 20), matShorts);
+        cuffMesh.position.y = -0.06;
+        hipJoint.add(cuffMesh);
+      }
 
       // Knee Joint
       const kneeJoint = new THREE.Group();
-      kneeJoint.position.y = -0.26;
+      kneeJoint.position.y = -0.27;
       hipJoint.add(kneeJoint);
 
-      // Calf
-      const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.05, 0.24, 16), matSkin);
-      calf.position.y = -0.12;
-      calf.castShadow = true;
-      kneeJoint.add(calf);
+      // Calf / Gastrocnemius (Muscular tear-drop shape)
+      const calfMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.064, 0.042, 0.26, 16), matSkin);
+      calfMesh.position.y = -0.13;
+      calfMesh.castShadow = true;
+      kneeJoint.add(calfMesh);
 
       // Athletic Sneaker
-      const shoeGeo = new THREE.BoxGeometry(0.12, 0.08, 0.22);
-      const shoe = new THREE.Mesh(shoeGeo, matShoes);
-      shoe.position.set(0, -0.26, 0.05);
-      shoe.castShadow = true;
-      kneeJoint.add(shoe);
+      const shoeGroup = new THREE.Group();
+      shoeGroup.position.set(0, -0.28, 0.04);
+      kneeJoint.add(shoeGroup);
+
+      const sole = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.04, 0.22), matShoes);
+      const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.12, 12, 16), matShorts);
+      upper.position.set(0, 0.03, 0.01);
+      upper.rotation.x = Math.PI / 2;
+      shoeGroup.add(sole, upper);
 
       return { hipJoint, kneeJoint };
     };
 
-    const leftLeg = makeLeg(true);
-    const rightLeg = makeLeg(false);
+    const leftLeg = makeOrganicLeg(true);
+    const rightLeg = makeOrganicLeg(false);
 
     // ── 5. CAMERA PRESETS POSITION CONFIG ─────────────────────────────
     const updateCameraTarget = () => {
@@ -271,7 +323,7 @@ export default function ThreeCharacterStudio({
 
     updateCameraTarget();
 
-    // ── 6. INTERACTION & ORBIT ────────────────────────────────────────
+    // ── 6. INTERACTIVE ORBIT ──────────────────────────────────────────
     let time = 0;
     let reqId = null;
     let isDragging = false;
@@ -295,8 +347,12 @@ export default function ThreeCharacterStudio({
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
-    // Humanoid Biomechanical Sine Curves (2s Cadence: Inhale Eccentric, Pause Depth, Exhale Lockout)
-    const smoothEase = (x) => 0.5 - 0.5 * Math.cos(Math.PI * x);
+    // Human-grade Sinusoidal Cadence Curve with Stretch Reflex & Pause
+    const humanCadence = (x) => {
+      // Natural 2-phase tempo: controlled descent -> 0.1s stretch reflex -> explosive concentric ascent
+      const s = 0.5 - 0.5 * Math.cos(Math.PI * x);
+      return Math.pow(s, 1.15); // subtle non-linear muscle contraction curve
+    };
 
     // ── 7. LIFELIKE HUMAN BIOMECHANICS ANIMATION LOOP ──────────────────
     const animate = () => {
@@ -311,50 +367,51 @@ export default function ThreeCharacterStudio({
       rootModel.rotation.y = manualRotY;
 
       const rawCycle = (Math.sin(time) + 1) / 2;
-      const k = smoothEase(rawCycle);
+      const k = humanCadence(rawCycle);
 
       if (exercise === 'pushup') {
-        // Humanoid Horizontal Plank
+        // ── LIFELIKE PUSH-UP (Scapular Retraction, 45° Elbow Arrow, Neutral Cervical Spine) ──
         rootModel.position.set(0, -0.22 + (1 - k) * 0.28, 0);
         rootModel.rotation.x = THREE.MathUtils.degToRad(78);
 
-        // Scapular Retraction at depth
-        chestMesh.scale.set(1 + (1 - k) * 0.05, 1, 1 + (1 - k) * 0.05); // Chest expands at bottom
+        // Core Bracing & Inhale Chest Expansion at bottom
+        chestGroup.scale.set(1 + (1 - k) * 0.06, 1, 1 + (1 - k) * 0.06);
         torsoGroup.rotation.x = 0;
         pelvis.rotation.x = 0;
         neckGroup.rotation.x = THREE.MathUtils.degToRad(-14);
 
-        // Arms: 45° arrow trajectory, full 90° elbow flexion
-        leftArm.shoulderJoint.rotation.x = THREE.MathUtils.degToRad(-25 + k * 52);
-        rightArm.shoulderJoint.rotation.x = THREE.MathUtils.degToRad(-25 + k * 52);
-        leftArm.shoulderJoint.rotation.z = THREE.MathUtils.degToRad(22 + k * 26);
-        rightArm.shoulderJoint.rotation.z = THREE.MathUtils.degToRad(-22 - k * 26);
-        leftArm.elbowJoint.rotation.x = THREE.MathUtils.degToRad(k * 85);
-        rightArm.elbowJoint.rotation.x = THREE.MathUtils.degToRad(k * 85);
+        // Arms: Authentic 45° Arrow Tracking with 90° elbow flexion
+        leftArm.shoulderJoint.rotation.x = THREE.MathUtils.degToRad(-25 + k * 54);
+        rightArm.shoulderJoint.rotation.x = THREE.MathUtils.degToRad(-25 + k * 54);
+        leftArm.shoulderJoint.rotation.z = THREE.MathUtils.degToRad(24 + k * 26);
+        rightArm.shoulderJoint.rotation.z = THREE.MathUtils.degToRad(-24 - k * 26);
+        leftArm.elbowJoint.rotation.x = THREE.MathUtils.degToRad(k * 88);
+        rightArm.elbowJoint.rotation.x = THREE.MathUtils.degToRad(k * 88);
 
+        // Lower body rigid kinetic chain
         leftLeg.hipJoint.rotation.x = 0;
         rightLeg.hipJoint.rotation.x = 0;
         leftLeg.kneeJoint.rotation.x = 0;
         rightLeg.kneeJoint.rotation.x = 0;
       } else if (exercise === 'squat') {
-        // Humanoid Parallel Squat with Hip Hinge
+        // ── LIFELIKE AIR SQUAT (Hip Hinge, 26° Torso Lean, Femur Parallel Depth, Heel Drive) ──
         rootModel.position.set(0, 0.08, 0);
         rootModel.rotation.x = 0;
 
         const squatDepth = k * 0.38;
         pelvis.position.y = -squatDepth;
 
-        // Hip Hinge: Torso leans 26° to counterbalance hips pushing back
+        // Hip Hinge counterbalancing knee travel
         torsoGroup.rotation.x = THREE.MathUtils.degToRad(k * 26);
         neckGroup.rotation.x = THREE.MathUtils.degToRad(-k * 20);
 
-        // Knees track over toes, hips break below parallel
-        leftLeg.hipJoint.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-        rightLeg.hipJoint.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-        leftLeg.kneeJoint.rotation.x = THREE.MathUtils.degToRad(k * 98);
-        rightLeg.kneeJoint.rotation.x = THREE.MathUtils.degToRad(k * 98);
+        // Hip & Knee synchronized flexion
+        leftLeg.hipJoint.rotation.x = THREE.MathUtils.degToRad(-k * 90);
+        rightLeg.hipJoint.rotation.x = THREE.MathUtils.degToRad(-k * 90);
+        leftLeg.kneeJoint.rotation.x = THREE.MathUtils.degToRad(k * 102);
+        rightLeg.kneeJoint.rotation.x = THREE.MathUtils.degToRad(k * 102);
 
-        // Arms counterbalance forward
+        // Arms reach forward for balance
         leftArm.shoulderJoint.rotation.x = THREE.MathUtils.degToRad(k * 85);
         rightArm.shoulderJoint.rotation.x = THREE.MathUtils.degToRad(k * 85);
         leftArm.shoulderJoint.rotation.z = 0;
@@ -362,10 +419,10 @@ export default function ThreeCharacterStudio({
         leftArm.elbowJoint.rotation.x = 0;
         rightArm.elbowJoint.rotation.x = 0;
       } else if (exercise === 'situp') {
+        // ── LIFELIKE SIT-UP (Segmental Spinal Curling from Supine to 70° Upright) ──
         rootModel.position.set(0, -0.32, 0);
         rootModel.rotation.x = THREE.MathUtils.degToRad(-82);
 
-        // Segmental Spinal Curl
         torsoGroup.rotation.x = THREE.MathUtils.degToRad(k * 70);
         neckGroup.rotation.x = THREE.MathUtils.degToRad(k * 24);
 
@@ -381,7 +438,7 @@ export default function ThreeCharacterStudio({
         leftLeg.kneeJoint.rotation.x = THREE.MathUtils.degToRad(-60);
         rightLeg.kneeJoint.rotation.x = THREE.MathUtils.degToRad(-60);
       } else {
-        // Plank
+        // ── LIFELIKE ISOMETRIC PLANK HOLD (Diaphragmatic Breathing & Core Brace) ──
         rootModel.position.set(0, 0.04, 0);
         rootModel.rotation.x = THREE.MathUtils.degToRad(78);
 
@@ -433,7 +490,7 @@ export default function ThreeCharacterStudio({
           <span>VIEW: {effectiveAngle.toUpperCase()}</span>
         </div>
 
-        {/* Floating Quick Roast Button on Canvas */}
+        {/* Floating Quick Roast Button */}
         <button
           onClick={onTriggerRoast}
           disabled={isLoadingRoast}
