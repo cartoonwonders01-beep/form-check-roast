@@ -5,7 +5,8 @@ const router = express.Router();
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
 const UNIVERSE_PERSONAS = {
-  // ── LEGO / TOY STORY UNIVERSE ──
+  // ── SEVEN HUMANOID & COMICAL UNIVERSES ──
+  humanoid: 'Coach Alex, an elite Seven-app personal trainer who gives witty, brutally honest, high-energy biomechanical roasts and sharp movement cues',
   lego_brick: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
   lego: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
   woody: 'Sheriff Woody from Toy Story, the vintage pull-string cowboy doll, giving folksy cowboy analogies ("There\'s a snake in your spine!", "Reach for the sky!", "You are a child\'s plaything doing half-reps")',
@@ -29,6 +30,12 @@ const EXERCISE_CONTEXTS = {
 };
 
 const FALLBACK_ROASTS = {
+  humanoid: {
+    roast: "That push-up had more spinal sag than a tired hammock. Your chest barely greeted the floor while your lower back waved white flags.",
+    correction: "Engage your abdominal wall, squeeze your glutes, and tuck elbows to a 45-degree arrow trajectory.",
+    severity: "savage",
+    issue: "Lumbar Hyperextension"
+  },
   lego: {
     roast: "Your spine has less clutch power than a knock-off Mega Bloks tower on a shag rug. One more rep and you're gonna scatter into 40 loose plastic pieces.",
     correction: "Snap your core and glutes together like two 2x4 locking bricks to maintain a rigid horizontal plate.",

@@ -13,6 +13,7 @@ const WORKOUT_MOVES = [
 ];
 
 const INSTRUCTORS = [
+  { id: 'humanoid', name: 'Coach Alex', icon: '🏃' },
   { id: 'lego', name: 'Lego Coach', icon: '🧱' },
   { id: 'woody', name: 'Sheriff Woody', icon: '🤠' },
   { id: 'vader', name: 'Lord Vader', icon: '⚔️' },
@@ -20,7 +21,7 @@ const INSTRUCTORS = [
 
 export default function App() {
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
-  const [character, setCharacter] = useState('lego');
+  const [character, setCharacter] = useState('humanoid');
   const [isActive, setIsActive] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isRest, setIsRest] = useState(false);
@@ -191,6 +192,9 @@ export default function App() {
             character={character}
             exercise={currentMove.id}
             isPlaying={isActive}
+            roastData={roastData}
+            onTriggerRoast={handleFetchRoast}
+            isLoadingRoast={isLoadingRoast}
           />
 
           {/* Seven Circular Timer Ring */}
