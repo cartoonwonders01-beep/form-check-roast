@@ -14,8 +14,8 @@ const WORKOUT_MOVES = [
 
 const INSTRUCTORS = [
   { id: 'lego', name: 'Lego Coach', icon: '🧱' },
+  { id: 'woody', name: 'Sheriff Woody', icon: '🤠' },
   { id: 'vader', name: 'Lord Vader', icon: '⚔️' },
-  { id: 'duck', name: 'Coach Duck', icon: '🦆' },
 ];
 
 export default function App() {

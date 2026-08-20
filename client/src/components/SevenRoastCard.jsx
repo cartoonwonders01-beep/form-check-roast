@@ -13,13 +13,14 @@ export default function SevenRoastCard({
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(`${roast} Correction: ${correction}`);
       u.rate = 1.0;
-      u.pitch = character === 'duck' ? 1.3 : character === 'vader' ? 0.7 : 1.1;
+      u.pitch = character === 'duck' ? 1.3 : character === 'vader' ? 0.7 : character === 'woody' ? 1.2 : 1.1;
       window.speechSynthesis.speak(u);
     }
   };
 
   const getCharName = () => {
     if (character === 'lego') return '🧱 Lego Coach Brick';
+    if (character === 'woody') return '🤠 Sheriff Woody';
     if (character === 'vader') return '⚔️ Lord Vader';
     return '🦆 Coach Quack';
   };

@@ -5,8 +5,10 @@ const router = express.Router();
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
 const UNIVERSE_PERSONAS = {
-  // ── LEGO UNIVERSE ──
+  // ── LEGO / TOY STORY UNIVERSE ──
   lego_brick: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
+  lego: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
+  woody: 'Sheriff Woody from Toy Story, the vintage pull-string cowboy doll, giving folksy cowboy analogies ("There\'s a snake in your spine!", "Reach for the sky!", "You are a child\'s plaything doing half-reps")',
   lego_batman: 'Lego Batman, the brooding Dark Knight who works only in black, gravelly-voiced, brutally critiquing calisthenics form with superhero arrogance',
 
   // ── STAR WARS UNIVERSE ──
@@ -27,11 +29,17 @@ const EXERCISE_CONTEXTS = {
 };
 
 const FALLBACK_ROASTS = {
-  lego_brick: {
+  lego: {
     roast: "Your spine has less clutch power than a knock-off Mega Bloks tower on a shag rug. One more rep and you're gonna scatter into 40 loose plastic pieces.",
     correction: "Snap your core and glutes together like two 2x4 locking bricks to maintain a rigid horizontal plate.",
     severity: "savage",
     issue: "Zero Brick Clutch Power"
+  },
+  woody: {
+    roast: "Hold on now, partner! There's a snake in your spine! You're floppin' around that floor like Andy just walked into the room!",
+    correction: "Squeeze that core tight and keep your back straight as a sheriff's badge.",
+    severity: "savage",
+    issue: "Floppy Pull-String Spine"
   },
   lego_batman: {
     roast: "I only work in black, darkness... and actual full-range push-ups. Your form is weaker than the Joker's punchlines.",
