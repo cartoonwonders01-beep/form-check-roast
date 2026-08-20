@@ -2,41 +2,51 @@ export async function onRequestPost(context) {
   try {
     const { request, env } = context;
     const body = await request.json();
-    const { exercise = 'pushup', character = 'duck' } = body;
+    const { exercise = 'pushup', character = 'lego_brick', poseTelemetry } = body;
 
     const GEMINI_API_KEY = env.GEMINI_API_KEY || '';
     const GEMINI_MODEL = 'gemini-3.6-flash';
 
-    const CHARACTER_PERSONAS = {
-      human: 'a brutally honest, high-energy gym coach',
-      duck: 'a sassy, sarcastic duck who wears a tiny sweatband and quacks when disgusted by bad form',
-      cow: 'a surprisingly buff bodybuilding cow who takes biomechanics very seriously',
-      frog: 'a zen martial arts frog who preaches deep range of motion and joint mobility',
-      bear: 'a grumpy grizzly powerlifter who only respects heavy depth and zero half-reps'
+    const UNIVERSE_PERSONAS = {
+      lego_brick: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
+      lego_batman: 'Lego Batman, the brooding Dark Knight who works only in black, gravelly-voiced, brutally critiquing calisthenics form with superhero arrogance',
+      vader: 'Darth Vader, Supreme Commander of the Imperial Fleet, holding a red lightsaber, speaking with mechanical breathing pauses, viewing bad pushup form as weakness and treason against the Empire',
+      yoda: 'Grand Master Yoda, ancient 900-year-old Jedi Master speaking in inverted syntax ("Sagging your hips are, fall to the Dark Side you will"), preaching deep range of motion and the Living Force',
+      stormtrooper: 'TK-421, a clumsy Imperial Stormtrooper who misses every shot and every target depth angle, giving sarcastic tactical advice',
+      duck: 'Coach Quack, a sassy sarcastic duck who wears a tiny sweatband and quacks in fury when elbows flare or hips sag',
+      bear: 'Grizzly Bruno, a 900lb grizzly powerlifter who only respects deep range of motion and crushing heavy bodyweight reps'
     };
 
-    const EXERCISE_PROMPTS = {
-      pushup: 'push-up attempt (e.g. sagging hips, flared elbows, half-reps, head nodding)',
-      pullup: 'pull-up attempt (e.g. kipping, half-range of motion, dead-hanging instead of engaging lats, swinging)',
-      squat: 'squat attempt (e.g. knees caving inward, butt wink, heels lifting off the floor, quarter-rep depth)',
-      dips: 'parallel bar / chair dip attempt (e.g. shoulders rolling forward, elbow flaring, insufficient depth)'
+    const EXERCISE_CONTEXTS = {
+      pushup: 'push-up attempt (e.g. sagging lower back, flared elbows, half-depth nodding)',
+      pullup: 'pull-up attempt (e.g. kipping legs, disengaged scapula, chin failing to clear the bar)',
+      squat: 'squat attempt (e.g. shallow quarter-depth, knees caving inward, forward chest collapse)',
+      dips: 'parallel bar dip attempt (e.g. forward shoulder dump, elbows flaring, half reps)'
     };
 
-    const persona = CHARACTER_PERSONAS[character] || CHARACTER_PERSONAS.duck;
-    const exerciseContext = EXERCISE_PROMPTS[exercise] || EXERCISE_PROMPTS.pushup;
+    const persona = UNIVERSE_PERSONAS[character] || UNIVERSE_PERSONAS.lego_brick;
+    const exerciseContext = EXERCISE_CONTEXTS[exercise] || EXERCISE_CONTEXTS.pushup;
+
+    const telemetryDetails = poseTelemetry ? `
+Pose Telemetry from Computer Vision:
+- Form Score: ${poseTelemetry.formScore}%
+- Joint Angles: Elbow: ${Math.round(poseTelemetry.angles?.elbow || 180)}°, Hip Sag: ${Math.round(poseTelemetry.angles?.hip || 180)}°, Shoulder Flare: ${Math.round(poseTelemetry.angles?.shoulder || 50)}°
+- Active Faults: ${poseTelemetry.errors?.map(e => e.label).join(', ') || 'General form breakdown'}
+` : '';
 
     const systemPrompt = `You are ${persona}. 
-Your job is to roast a user's ${exerciseContext}.
+Your mission is to deliver a savage, hilarious, universe-authentic roast and a precise biomechanical correction for the user's ${exerciseContext}.
+${telemetryDetails}
 
-You must respond with ONLY a valid JSON object (no markdown, no code block fences, no explanation) with these exact keys:
+You must respond with ONLY a valid JSON object (no markdown, no code block fences, no conversational preamble) with these exact keys:
 {
-  "roast": "a hilarious, blunt 1-2 sentence roast in character",
+  "roast": "a hilarious 1-2 sentence roast staying 100% in your universe persona",
   "correction": "one precise, actionable biomechanical cue to fix the biggest flaw",
   "severity": "mild" | "medium" | "savage",
-  "issue": "short 2-4 word summary of the form defect"
+  "issue": "short 2-4 word summary of the defect"
 }`;
 
-    const userPrompt = `Here is the user's ${exercise} attempt. Give me your roast and technical correction.`;
+    const userPrompt = `Roast this ${exercise} attempt as your character!`;
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     
@@ -79,10 +89,10 @@ You must respond with ONLY a valid JSON object (no markdown, no code block fence
     });
   } catch (err) {
     const fallback = {
-      roast: "Your form has the structural integrity of wet spaghetti — even a Roomba has better core tension.",
-      correction: "Brace your core and lock your alignment before you descend.",
+      roast: "Your spine has less clutch power than a knock-off Mega Bloks tower on a shag rug. One more rep and you're gonna scatter into loose plastic pieces.",
+      correction: "Snap your core and glutes together like two 2x4 locking bricks to maintain a rigid horizontal plate.",
       severity: "savage",
-      issue: "form breakdown"
+      issue: "Zero Brick Clutch Power"
     };
 
     return new Response(JSON.stringify({

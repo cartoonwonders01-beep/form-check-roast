@@ -17,7 +17,7 @@ const EXERCISES = [
 
 export default function App() {
   const [exercise, setExercise] = useState('pushup');
-  const [character, setCharacter] = useState('duck');
+  const [character, setCharacter] = useState('lego_brick');
   const [videoSource, setVideoSource] = useState('demo');
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState(null);
   const [roastData, setRoastData] = useState(null);
