@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Flame, Moon, Sun, ChevronRight, CheckCircle2 } from 'lucide-react';
-import SevenCharacterViewer from './components/SevenCharacterViewer';
+import ThreeCharacterStudio from './components/ThreeCharacterStudio';
 import SevenTimerRing from './components/SevenTimerRing';
 import SevenRoastCard from './components/SevenRoastCard';
 import { sfx } from './utils/audioEffects';
@@ -186,8 +186,8 @@ export default function App() {
             </p>
           </div>
 
-          {/* Animated Character Avatar */}
-          <SevenCharacterViewer
+          {/* 3D Animated Character Studio (Three.js WebGL) */}
+          <ThreeCharacterStudio
             character={character}
             exercise={currentMove.id}
             isPlaying={isActive}
