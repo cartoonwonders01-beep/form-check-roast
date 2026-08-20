@@ -4,39 +4,22 @@
 
 @layer base {
   body {
-    @apply bg-roast-dark text-white font-body;
-    background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(255, 107, 53, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, rgba(255, 217, 61, 0.05) 0%, transparent 40%);
+    @apply bg-[#07080B] text-white font-sans;
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B0D13;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #232733;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #F97316;
   }
 }
-
-@layer components {
-  .glass-card {
-    @apply bg-roast-card border border-roast-border rounded-2xl;
-    background: rgba(22, 33, 62, 0.8);
-    backdrop-filter: blur(12px);
-  }
-
-  .btn-roast {
-    @apply relative overflow-hidden font-display text-2xl tracking-wider
-           px-10 py-4 rounded-full text-roast-dark
-           transition-all duration-200
-           hover:scale-105 hover:shadow-2xl active:scale-95;
-    background: linear-gradient(135deg, #FF6B35 0%, #FFD93D 100%);
-    box-shadow: 0 0 30px rgba(255, 107, 53, 0.4);
-  }
-
-  .btn-roast:hover {
-    box-shadow: 0 0 50px rgba(255, 107, 53, 0.7);
-  }
-
-  .severity-badge {
-    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase;
-  }
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1a1a2e; }
-::-webkit-scrollbar-thumb { background: #FF6B35; border-radius: 3px; }
