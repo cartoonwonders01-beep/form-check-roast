@@ -6,8 +6,8 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 // Gemini client
 // ---------------------------------------------------------------------------
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+const GEMINI_MODEL = 'gemini-3.6-flash';
+
 
 // ---------------------------------------------------------------------------
 // System prompt — shapes the roast + correction output
@@ -74,21 +74,36 @@ router.post('/', async (req, res) => {
       ? `Analyze the push-up form in this video: ${videoUrl}\n\nIf you cannot access the video directly, imagine you are watching a typical "bad push-up" video where the person has sagging hips and flared elbows. Give your roast and correction based on those common issues.`
       : `Imagine you're watching someone do a push-up with terrible form — hips are sagging, elbows flared out wide. Give your roast and correction.`;
 
-    const result = await model.generateContent([
-      { text: SYSTEM_PROMPT },
-      { text: prompt },
-    ]);
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const response = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: SYSTEM_PROMPT + '\n\n' + prompt }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.9,
+          maxOutputTokens: 512,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
 
-    const responseText = result.response.text().trim();
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini HTTP ${response.status}: ${errText}`);
+    }
 
-    // Strip markdown code fences if Gemini wraps in them
-    const jsonStr = responseText
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/```\s*$/i, '')
-      .trim();
+    const resJson = await response.json();
+    const responseText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!responseText) throw new Error('Empty response from Gemini');
 
-    const data = JSON.parse(jsonStr);
+    const data = JSON.parse(responseText);
 
     res.json({ success: true, data });
   } catch (err) {
