@@ -88,7 +88,7 @@ router.post('/', async (req, res) => {
         ],
         generationConfig: {
           temperature: 0.9,
-          maxOutputTokens: 512,
+          maxOutputTokens: 2048,
           responseMimeType: 'application/json'
         }
       })
@@ -100,8 +100,11 @@ router.post('/', async (req, res) => {
     }
 
     const resJson = await response.json();
-    const responseText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    let responseText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!responseText) throw new Error('Empty response from Gemini');
+
+    // Clean potential markdown or extraneous whitespace
+    responseText = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
 
     const data = JSON.parse(responseText);
 
