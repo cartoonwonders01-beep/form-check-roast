@@ -1,239 +1,251 @@
-import { useState, useCallback } from 'react';
-import { Activity, Flame, Shield, Sparkles, Trophy, Zap } from 'lucide-react';
-import PoseCameraViewer from './components/PoseCameraViewer';
-import AnimalPuppetCanvas from './components/AnimalPuppetCanvas';
-import TelemetryHUD from './components/TelemetryHUD';
-import CharacterSelector from './components/CharacterSelector';
-import RoastCard from './components/RoastCard';
-import LoadingRoast from './components/LoadingRoast';
+import { useState, useEffect } from 'react';
+import { Play, Pause, RotateCcw, Flame, Moon, Sun, ChevronRight, CheckCircle2 } from 'lucide-react';
+import SevenCharacterViewer from './components/SevenCharacterViewer';
+import SevenTimerRing from './components/SevenTimerRing';
+import SevenRoastCard from './components/SevenRoastCard';
 import { sfx } from './utils/audioEffects';
 
-const EXERCISES = [
-  { id: 'pushup', label: 'Push-Up', icon: '🤸', demoVideoId: 'IODxDxX7oi4', focus: 'Chest, Triceps & Core Bracing' },
-  { id: 'pullup', label: 'Pull-Up', icon: '🧗', demoVideoId: 'ba8tr1Pcqyo', focus: 'Lats & Scapular Depression' },
-  { id: 'squat', label: 'Air Squat', icon: '🏋️', demoVideoId: 'bEv6CCg2BC8', focus: 'Femur Parallel & Hip Crease' },
-  { id: 'dips', label: 'Bar Dips', icon: '🪑', demoVideoId: '2z8JmcrW-As', focus: 'Anterior Deltoid & 90° Angle' },
+const WORKOUT_MOVES = [
+  { id: 'pushup', title: 'Press-ups', subtitle: 'Chest & Core Plank', duration: 30 },
+  { id: 'squat', title: 'Air Squats', subtitle: 'Quads & Glutes', duration: 30 },
+  { id: 'situp', title: 'Sit-ups', subtitle: 'Abdominal Crunch', duration: 30 },
+  { id: 'plank', title: 'Plank Hold', subtitle: 'Isometric Stability', duration: 30 },
+];
+
+const INSTRUCTORS = [
+  { id: 'lego', name: 'Lego Coach', icon: '🧱' },
+  { id: 'vader', name: 'Lord Vader', icon: '⚔️' },
+  { id: 'duck', name: 'Coach Duck', icon: '🦆' },
 ];
 
 export default function App() {
-  const [exercise, setExercise] = useState('pushup');
-  const [character, setCharacter] = useState('lego_brick');
-  const [videoSource, setVideoSource] = useState('demo');
-  const [uploadedVideoUrl, setUploadedVideoUrl] = useState(null);
+  const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
+  const [character, setCharacter] = useState('lego');
+  const [isActive, setIsActive] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(30);
+  const [isRest, setIsRest] = useState(false);
   const [roastData, setRoastData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasRoasted, setHasRoasted] = useState(false);
-  const [poseMetrics, setPoseMetrics] = useState(null);
+  const [isLoadingRoast, setIsLoadingRoast] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const currentExerciseObj = EXERCISES.find(e => e.id === exercise) || EXERCISES[0];
+  const currentMove = WORKOUT_MOVES[currentMoveIdx];
 
-  const handlePoseUpdate = useCallback((metrics) => {
-    setPoseMetrics(metrics);
-  }, []);
+  // ── Workout Timer Loop ───────────────────────────────────────────────
+  useEffect(() => {
+    let timer = null;
+    if (isActive && secondsLeft > 0) {
+      timer = setInterval(() => {
+        setSecondsLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (isActive && secondsLeft === 0) {
+      if (!isRest) {
+        // Move to Rest
+        sfx.playRepSuccess();
+        setIsRest(true);
+        setSecondsLeft(10);
+      } else {
+        // Move to Next Exercise
+        sfx.playLegoSnap();
+        setIsRest(false);
+        const nextIdx = (currentMoveIdx + 1) % WORKOUT_MOVES.length;
+        setCurrentMoveIdx(nextIdx);
+        setSecondsLeft(WORKOUT_MOVES[nextIdx].duration);
+      }
+    }
+    return () => clearInterval(timer);
+  }, [isActive, secondsLeft, isRest, currentMoveIdx]);
 
-  const handleRoast = async () => {
-    sfx.playWhistle();
-    setIsLoading(true);
+  const toggleTimer = () => {
+    sfx.playLegoSnap();
+    setIsActive(!isActive);
+  };
+
+  const resetTimer = () => {
+    setIsActive(false);
+    setIsRest(false);
+    setSecondsLeft(currentMove.duration);
     setRoastData(null);
-    setHasRoasted(false);
+  };
 
+  const handleSelectMove = (idx) => {
+    setCurrentMoveIdx(idx);
+    setIsActive(false);
+    setIsRest(false);
+    setSecondsLeft(WORKOUT_MOVES[idx].duration);
+    setRoastData(null);
+  };
+
+  const handleFetchRoast = async () => {
+    setIsLoadingRoast(true);
     try {
       const res = await fetch('/api/roast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          exercise,
-          character,
-          videoSource,
-          videoUrl: videoSource === 'demo' 
-            ? `https://www.youtube.com/watch?v=${currentExerciseObj.demoVideoId}` 
-            : 'user-camera-clip',
-          poseTelemetry: poseMetrics ? {
-            formScore: poseMetrics.formScore,
-            angles: poseMetrics.angles,
-            errors: poseMetrics.errors
-          } : null
+          exercise: currentMove.id,
+          character: character === 'lego' ? 'lego_brick' : character,
         }),
       });
-
-      const json = await res.json();
-      if (json.success) {
-        setRoastData(json.data);
-        setHasRoasted(true);
+      const data = await res.json();
+      if (data.success) {
+        setRoastData(data.data);
       }
     } catch (err) {
-      console.error('Failed to get roast:', err);
       setRoastData({
-        roast: `Your ${currentExerciseObj.label} has the structural integrity of soggy cereal — your spine folded like a cheap deckchair.`,
-        correction: "Brace your core and squeeze your glutes into a rigid horizontal plank.",
+        roast: "Your form has less structural integrity than loose plastic on a rug.",
+        correction: "Lock your core and maintain full range of motion.",
         severity: "savage",
-        issue: `broken ${exercise} alignment`,
+        issue: "Core breakdown"
       });
-      setHasRoasted(true);
     } finally {
-      setIsLoading(false);
+      setIsLoadingRoast(false);
     }
   };
 
-  const handleReset = () => {
-    setRoastData(null);
-    setHasRoasted(false);
-  };
-
   return (
-    <div className="min-h-screen bg-[#07080B] text-white flex flex-col selection:bg-orange-500 selection:text-white font-sans antialiased">
-      {/* ── TOP NAV / HUD BAR ── */}
-      <nav className="border-b border-white/10 bg-[#0B0D13]/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Flame className="w-5 h-5 text-black stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="font-black tracking-wider text-base uppercase bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
-                FORM CHECK ROAST
-              </div>
-              <div className="text-[10px] font-mono text-orange-400 tracking-widest uppercase">
-                AI CALISTHENICS TELEMETRY
-              </div>
-            </div>
-          </div>
+    <div className={`${isDarkMode ? 'dark' : ''} min-h-screen bg-[#F8FAFC] dark:bg-[#090A0E] text-slate-900 dark:text-white transition-colors duration-200 font-sans flex flex-col items-center justify-start p-4 sm:p-6`}>
+      
+      {/* ── Seven-Style Container Frame ── */}
+      <div className="w-full max-w-md flex flex-col space-y-4">
 
+        {/* ── Top Header ── */}
+        <header className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-gray-300">
-              <Zap className="w-3.5 h-3.5 text-yellow-400" />
-              <span>GEMINI 3.6 FLASH POSE REASONING</span>
-            </div>
-            <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>60 FPS KINEMATICS</span>
-            </div>
+            <span className="text-2xl font-black tracking-tight text-orange-500 font-mono">SEVEN</span>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 uppercase">
+              Roast Edition
+            </span>
           </div>
-        </div>
-      </nav>
 
-      {/* ── EXERCISE SELECTION STRIP ── */}
-      <div className="border-b border-white/5 bg-[#090A0E] py-3 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-            {EXERCISES.map((ex) => {
-              const isSelected = exercise === ex.id;
-              return (
+          <div className="flex items-center gap-1.5">
+            {/* Instructor Switcher Pills */}
+            <div className="flex items-center bg-slate-200/70 dark:bg-zinc-800/80 p-1 rounded-full text-xs">
+              {INSTRUCTORS.map((inst) => (
                 <button
-                  key={ex.id}
+                  key={inst.id}
                   onClick={() => {
-                    setExercise(ex.id);
-                    setHasRoasted(false);
-                    setRoastData(null);
+                    setCharacter(inst.id);
+                    if (inst.id === 'vader') sfx.playLightsaber();
+                    else sfx.playLegoSnap();
                   }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all flex items-center gap-2 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-lg shadow-orange-500/25 scale-[1.03]'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
+                  className={`px-2.5 py-1 rounded-full font-bold transition-all flex items-center gap-1 ${
+                    character === inst.id
+                      ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900'
                   }`}
+                  title={inst.name}
                 >
-                  <span className="text-sm">{ex.icon}</span>
-                  <span>{ex.label}</span>
+                  <span>{inst.icon}</span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 transition-colors"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </div>
+        </header>
 
-          <div className="text-xs font-mono text-gray-400 hidden md:block">
-            Target Focus: <span className="text-white font-semibold">{currentExerciseObj.focus}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MAIN WORKSPACE ── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-          {/* LEFT 7 COLS — Video Capture & Biomechanical Telemetry */}
-          <div className="lg:col-span-7 space-y-5">
-            <PoseCameraViewer
-              videoId={currentExerciseObj.demoVideoId}
-              videoSource={videoSource}
-              setVideoSource={setVideoSource}
-              uploadedVideoUrl={uploadedVideoUrl}
-              setUploadedVideoUrl={setUploadedVideoUrl}
-              exercise={currentExerciseObj.label}
-              onPoseUpdate={handlePoseUpdate}
-            />
-
-            {/* AI ROAST TRIGGER BUTTON */}
-            {!hasRoasted && !isLoading && (
+        {/* ── Exercise Navigation Pills (The 4 MVP Moves) ── */}
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-2xl p-1.5 shadow-sm">
+          {WORKOUT_MOVES.map((move, idx) => {
+            const isCurrent = currentMoveIdx === idx;
+            return (
               <button
-                onClick={handleRoast}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 active:scale-[0.99] text-black font-black text-lg tracking-wider uppercase shadow-2xl shadow-orange-500/30 transition-all flex items-center justify-center gap-2"
+                key={move.id}
+                onClick={() => handleSelectMove(idx)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center ${
+                  isCurrent
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
               >
-                <Flame className="w-5 h-5 fill-current" />
-                <span>ROAST MY {currentExerciseObj.label.toUpperCase()}</span>
-                <Flame className="w-5 h-5 fill-current" />
+                {move.title.split(' ')[0]}
               </button>
-            )}
+            );
+          })}
+        </div>
 
-            {isLoading && <LoadingRoast />}
-
-            {hasRoasted && roastData && (
-              <div className="space-y-4">
-                <RoastCard data={roastData} character={character} />
-                <button
-                  onClick={handleReset}
-                  className="w-full py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all text-xs font-mono font-bold uppercase tracking-wider"
-                >
-                  🔄 Analyze Another Attempt
-                </button>
-              </div>
-            )}
+        {/* ── Seven Main Card ── */}
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-6 shadow-sm flex flex-col items-center text-center space-y-4">
+          
+          {/* Move Info */}
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">
+              Exercise {currentMoveIdx + 1} of {WORKOUT_MOVES.length}
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
+              {currentMove.title}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              {currentMove.subtitle}
+            </p>
           </div>
 
-          {/* RIGHT 5 COLS — Real-Time Puppet Canvas & Form HUD */}
-          <div className="lg:col-span-5 space-y-5">
-            {/* CARTOON ANIMAL MIRROR PUPPET */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-orange-400" />
-                  LIVE ANIMAL KINEMATIC PUPPET
-                </h2>
-                <span className="text-[10px] font-mono text-cyan-400">
-                  MIRRORS YOUR MOTION
-                </span>
-              </div>
+          {/* Animated Character Avatar */}
+          <SevenCharacterViewer
+            character={character}
+            exercise={currentMove.id}
+            isPlaying={isActive}
+          />
 
-              <AnimalPuppetCanvas
-                character={character}
-                poseMetrics={poseMetrics}
-                exercise={exercise}
-              />
-            </div>
+          {/* Seven Circular Timer Ring */}
+          <SevenTimerRing
+            secondsLeft={secondsLeft}
+            totalSeconds={isRest ? 10 : currentMove.duration}
+            isActive={isActive}
+            isRest={isRest}
+          />
 
-            {/* COACH CHARACTER SELECTOR */}
-            <div className="space-y-2.5">
-              <div className="text-xs font-mono font-bold uppercase tracking-widest text-gray-400">
-                SELECT ANIMAL COACH PERSONA
-              </div>
-              <CharacterSelector
-                selected={character}
-                onSelect={setCharacter}
-              />
-            </div>
+          {/* Bottom Primary Controls */}
+          <div className="w-full flex items-center gap-3 pt-2">
+            <button
+              onClick={resetTimer}
+              className="p-3.5 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors"
+              title="Reset timer"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
 
-            {/* BIOMECHANICAL TELEMETRY HUD */}
-            <TelemetryHUD
-              poseMetrics={poseMetrics}
-              exercise={currentExerciseObj.label}
-            />
+            <button
+              onClick={toggleTimer}
+              className={`flex-1 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg ${
+                isActive
+                  ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-slate-900 hover:opacity-90'
+                  : 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/25'
+              }`}
+            >
+              {isActive ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+              <span>{isActive ? 'Pause Workout' : 'Start Set'}</span>
+            </button>
+
+            <button
+              onClick={handleFetchRoast}
+              disabled={isLoadingRoast}
+              className="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 transition-colors"
+              title="Roast my form"
+            >
+              <Flame className="w-5 h-5 fill-current" />
+            </button>
           </div>
 
         </div>
-      </main>
 
-      {/* ── FOOTER ── */}
-      <footer className="border-t border-white/5 bg-[#050608] py-4 px-4 text-center text-xs font-mono text-gray-600">
-        FORM CHECK ROAST • POWERED BY GOOGLE MEDIAPIPE & GEMINI 3.6 FLASH • HACKATHON BUILD
-      </footer>
+        {/* ── Coach Roast Dialogue Card ── */}
+        {roastData && (
+          <SevenRoastCard
+            roastData={roastData}
+            character={character}
+            onRoastAgain={handleFetchRoast}
+            isLoading={isLoadingRoast}
+          />
+        )}
+
+      </div>
     </div>
   );
 }
