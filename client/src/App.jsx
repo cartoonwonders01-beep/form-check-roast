@@ -5,14 +5,23 @@ import CharacterSelector from './components/CharacterSelector';
 import CharacterDemo from './components/CharacterDemo';
 import LoadingRoast from './components/LoadingRoast';
 
-// A known YouTube video of someone doing push-ups with bad form
-const DEMO_VIDEO_ID = 'IODxDxX7oi4'; // "How to do a push-up WRONG" style video
+const EXERCISES = [
+  { id: 'pushup', label: 'Push-up', icon: '🤸', demoVideoId: 'IODxDxX7oi4' },
+  { id: 'pullup', label: 'Pull-up', icon: '🧗', demoVideoId: 'ba8tr1Pcqyo' },
+  { id: 'squat', label: 'Squat', icon: '🏋️', demoVideoId: 'bEv6CCg2BC8' },
+  { id: 'dips', label: 'Dips', icon: '🪑', demoVideoId: '2z8JmcrW-As' },
+];
 
 export default function App() {
+  const [exercise, setExercise] = useState('pushup');
   const [character, setCharacter] = useState('duck');
+  const [videoSource, setVideoSource] = useState('demo');
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState(null);
   const [roastData, setRoastData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasRoasted, setHasRoasted] = useState(false);
+
+  const currentExerciseObj = EXERCISES.find(e => e.id === exercise) || EXERCISES[0];
 
   const handleRoast = async () => {
     setIsLoading(true);
@@ -24,7 +33,12 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          videoUrl: `https://www.youtube.com/watch?v=${DEMO_VIDEO_ID}`,
+          exercise,
+          character,
+          videoSource,
+          videoUrl: videoSource === 'demo' 
+            ? `https://www.youtube.com/watch?v=${currentExerciseObj.demoVideoId}` 
+            : 'user-uploaded-clip',
         }),
       });
 
@@ -35,12 +49,12 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to get roast:', err);
-      // Fallback hardcoded roast so demo never dies
+      // Fallback
       setRoastData({
-        roast: "Your push-up has the structural integrity of wet spaghetti — even a Roomba has better core tension.",
-        correction: "Lock your core tight before you descend — squeeze your abs like you're bracing for a punch.",
+        roast: `Your ${exercise} has the structural integrity of wet spaghetti — even a Roomba has better core tension.`,
+        correction: "Brace your core and lock your form through the full range of motion.",
         severity: "savage",
-        issue: "zero core engagement",
+        issue: `poor ${exercise} technique`,
       });
       setHasRoasted(true);
     } finally {
@@ -54,89 +68,107 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-dark text-white">
       {/* ── Header ── */}
-      <header className="text-center pt-10 pb-6 px-4">
-        <h1 className="font-display text-6xl md:text-8xl tracking-wider"
-            style={{ color: '#FF6B35', textShadow: '0 0 40px rgba(255,107,53,0.5)' }}>
-          FORM CHECK
+      <header className="text-center pt-8 pb-4 px-4">
+        <h1 className="font-display text-5xl md:text-7xl tracking-wider text-roast"
+            style={{ textShadow: '0 0 30px rgba(255,107,53,0.5)' }}>
+          FORM CHECK ROAST 🔥
         </h1>
-        <h2 className="font-display text-4xl md:text-5xl tracking-widest"
-            style={{ color: '#FFD93D', textShadow: '0 0 20px rgba(255,217,61,0.4)' }}>
-          ROAST 🔥
-        </h2>
-        <p className="mt-3 text-gray-400 text-sm md:text-base max-w-md mx-auto">
-          Watch the vid. Get brutally roasted. Pick your animal coach. Fix your form.
+        <p className="mt-2 text-gray-400 text-sm md:text-base max-w-xl mx-auto">
+          Film or upload your calisthenics move. Get brutally roasted. Pick your cartoon animal coach. Fix your form.
         </p>
+
+        {/* ── Calisthenics Exercise Selector ── */}
+        <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
+          {EXERCISES.map((ex) => (
+            <button
+              key={ex.id}
+              onClick={() => {
+                setExercise(ex.id);
+                setHasRoasted(false);
+                setRoastData(null);
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${
+                exercise === ex.id
+                  ? 'bg-gold text-black shadow-lg shadow-yellow-400/20 scale-105'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <span>{ex.icon}</span>
+              <span>{ex.label}</span>
+            </button>
+          ))}
+        </div>
       </header>
 
-      {/* ── Main Layout ── */}
+      {/* ── Main Two-Column Layout ── */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 pb-16">
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-6 mt-4">
 
-          {/* LEFT — Video + Roast Button */}
+          {/* LEFT COLUMN — Video / Camera + Roast Trigger */}
           <div className="flex-1 flex flex-col gap-4">
-            <VideoPlayer videoId={DEMO_VIDEO_ID} />
+            <VideoPlayer
+              videoId={currentExerciseObj.demoVideoId}
+              videoSource={videoSource}
+              setVideoSource={setVideoSource}
+              uploadedVideoUrl={uploadedVideoUrl}
+              setUploadedVideoUrl={setUploadedVideoUrl}
+              exercise={currentExerciseObj.label}
+            />
 
             {!hasRoasted && !isLoading && (
               <button
                 onClick={handleRoast}
-                className="btn-roast w-full"
+                className="btn-roast w-full py-4 text-xl shadow-xl hover:scale-[1.02] transition-transform"
               >
-                🔥 ROAST MY FORM 🔥
+                🔥 ROAST MY {currentExerciseObj.label.toUpperCase()} 🔥
               </button>
             )}
 
             {isLoading && <LoadingRoast />}
 
             {hasRoasted && roastData && (
-              <>
+              <div className="space-y-4">
                 <RoastCard data={roastData} />
                 <button
                   onClick={handleReset}
-                  className="w-full py-3 rounded-full border border-roast-border text-gray-400
-                             hover:border-roast-orange hover:text-white transition-colors text-sm"
+                  className="w-full py-3 rounded-full border border-white/20 text-gray-400
+                             hover:border-roast hover:text-white transition-colors text-sm font-semibold"
                 >
-                  🔄 Roast Again
+                  🔄 Roast Another Attempt
                 </button>
-              </>
-            )}
-          </div>
-
-          {/* RIGHT — Character Coach */}
-          <div className="lg:w-80 flex flex-col gap-4">
-            <div className="glass-card p-5">
-              <h3 className="font-display text-2xl text-center mb-1"
-                  style={{ color: '#FFD93D' }}>
-                PICK YOUR COACH
-              </h3>
-              <p className="text-center text-gray-500 text-xs mb-4">
-                They'll demonstrate the correct form
-              </p>
-              <CharacterSelector selected={character} onSelect={setCharacter} />
-            </div>
-
-            <div className="glass-card p-5 flex-1 flex flex-col items-center justify-center min-h-64">
-              <CharacterDemo character={character} isActive={hasRoasted} />
-            </div>
-
-            {hasRoasted && roastData && (
-              <div className="glass-card p-4 animate-slide-up">
-                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 text-center">
-                  Coach says:
-                </p>
-                <p className="text-center text-sm text-white leading-relaxed">
-                  "{roastData.correction}"
-                </p>
               </div>
             )}
           </div>
+
+          {/* RIGHT COLUMN — Animated Cartoon Coaches */}
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="glass-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display text-xl tracking-wide text-gold">
+                  🐾 CHOOSE YOUR COACH
+                </h3>
+                <span className="text-xs text-gray-400">interactive form demos</span>
+              </div>
+
+              <CharacterSelector
+                selected={character}
+                onSelect={setCharacter}
+              />
+
+              <div className="mt-4">
+                <CharacterDemo character={character} />
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
 
       {/* ── Footer ── */}
-      <footer className="text-center pb-6 text-gray-700 text-xs">
-        Built at the hackathon 🏋️ · Powered by Gemini AI · No egos spared
+      <footer className="text-center py-6 text-xs text-gray-600 border-t border-white/5">
+        Form Check Roast • Built for the Hackathon with Gemini 3.6 Flash & Cloudflare
       </footer>
     </div>
   );

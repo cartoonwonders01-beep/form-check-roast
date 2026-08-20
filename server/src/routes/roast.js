@@ -1,80 +1,73 @@
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
 
-// ---------------------------------------------------------------------------
-// Gemini client
-// ---------------------------------------------------------------------------
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
+const CHARACTER_PERSONAS = {
+  human: 'a brutally honest, high-energy gym coach',
+  duck: 'a sassy, sarcastic duck who wears a tiny sweatband and quacks when disgusted by bad form',
+  cow: 'a surprisingly buff bodybuilding cow who takes biomechanics very seriously',
+  frog: 'a zen martial arts frog who preaches deep range of motion and joint mobility',
+  bear: 'a grumpy grizzly powerlifter who only respects heavy depth and zero half-reps'
+};
 
-// ---------------------------------------------------------------------------
-// System prompt — shapes the roast + correction output
-// ---------------------------------------------------------------------------
-const SYSTEM_PROMPT = `You are a brutally funny, slightly unhinged personal trainer who has seen too many bad push-ups.
-Your job is to:
-1. Give ONE savage but funny one-liner roast about the form you see (think Gordon Ramsay meets gym bro meme culture).
-2. Give ONE real, actionable correction cue that would actually fix the biggest form issue.
-3. Rate the severity: "mild", "medium", or "savage".
+const EXERCISE_PROMPTS = {
+  pushup: 'push-up attempt (e.g. sagging hips, flared elbows, half-reps, head nodding)',
+  pullup: 'pull-up attempt (e.g. kipping, half-range of motion, dead-hanging instead of engaging lats, swinging)',
+  squat: 'squat attempt (e.g. knees caving inward, butt wink, heels lifting off the floor, quarter-rep depth)',
+  dips: 'parallel bar / chair dip attempt (e.g. shoulders rolling forward, elbow flaring, insufficient depth)'
+};
 
-Always respond with ONLY valid JSON, no markdown, no extra text:
-{
-  "roast": "...",
-  "correction": "...",
-  "severity": "mild" | "medium" | "savage",
-  "issue": "one short label for the main form issue, e.g. 'sagging hips'"
-}
-
-If you cannot see a pushup or the video is unclear, still respond with valid JSON using a funny generic roast.`;
-
-// ---------------------------------------------------------------------------
-// Hardcoded demo analysis (fallback if API key is invalid)
-// ---------------------------------------------------------------------------
-const DEMO_RESPONSES = [
-  {
-    roast: "Your push-up has the structural integrity of a wet paper bag — even my grandma's knees hold up better than your hips.",
-    correction: "Keep your body in a rigid plank: squeeze your glutes and core so your hips stay level with your shoulders throughout the movement.",
+const FALLBACKS = {
+  pushup: {
+    roast: "Your spine is bending so low to the floor I can't tell if you're trying to do a push-up or limbo under a worm.",
+    correction: "Squeeze your glutes to lock your hips in line with your shoulders, and tuck those elbows in to a 45-degree angle.",
     severity: "savage",
-    issue: "sagging hips"
+    issue: "sagging hips & flared elbows"
   },
-  {
-    roast: "You're doing the worm at the gym and calling it a workout — this isn't a dance class, bestie.",
-    correction: "Before you go down, set your hips: imagine a broomstick resting on your back from head to heels — don't let it fall off.",
+  pullup: {
+    roast: "You're flapping around that bar like a fish on a pier — that's not a pull-up, that's a panic response.",
+    correction: "Engage your lats first by pulling your shoulder blades down and back before bending your elbows.",
+    severity: "savage",
+    issue: "kipping & disengaged scapula"
+  },
+  squat: {
+    roast: "Your depth is so shallow that puddles have more water. You're basically bowing to an invisible audience.",
+    correction: "Drive your knees outward over your pinky toes and descend until your hip crease is below the knee crease.",
     severity: "medium",
-    issue: "undulating spine"
+    issue: "quarter-rep depth & knees caving"
   },
-  {
-    roast: "Your elbows are flaring out so wide you're basically doing a chest flye with extra steps — put the wings away, you're not a bird.",
-    correction: "Tuck your elbows to about 45° from your body as you lower down — this protects your shoulders and actually works your chest.",
-    severity: "medium",
-    issue: "elbows flaring"
-  },
-];
+  dips: {
+    roast: "Your shoulders are rolled so far forward they're going to arrive in next week before your chest does.",
+    correction: "Keep your chest tall, shoulders depressed, and lower until your elbows reach roughly 90 degrees.",
+    severity: "savage",
+    issue: "anterior shoulder glide"
+  }
+};
 
-// ---------------------------------------------------------------------------
-// POST /api/roast
-// Body: { videoUrl?: string, useDemo?: boolean }
-// ---------------------------------------------------------------------------
 router.post('/', async (req, res) => {
   try {
-    const { videoUrl, useDemo } = req.body;
+    const { exercise = 'pushup', character = 'duck', videoUrl = '' } = req.body;
 
-    // If demo mode or no valid API key prefix, return a random demo response
-    if (useDemo || !process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.startsWith('your_')) {
-      const random = DEMO_RESPONSES[Math.floor(Math.random() * DEMO_RESPONSES.length)];
-      // Simulate a slight delay for realism
-      await new Promise(r => setTimeout(r, 1200));
-      return res.json({ success: true, data: random, demo: true });
-    }
+    const persona = CHARACTER_PERSONAS[character] || CHARACTER_PERSONAS.duck;
+    const exerciseContext = EXERCISE_PROMPTS[exercise] || EXERCISE_PROMPTS.pushup;
 
-    // Build prompt — for MVP we describe the video by URL context
-    // In a full build you'd pass video bytes via the File API
-    const prompt = videoUrl
-      ? `Analyze the push-up form in this video: ${videoUrl}\n\nIf you cannot access the video directly, imagine you are watching a typical "bad push-up" video where the person has sagging hips and flared elbows. Give your roast and correction based on those common issues.`
-      : `Imagine you're watching someone do a push-up with terrible form — hips are sagging, elbows flared out wide. Give your roast and correction.`;
+    const systemPrompt = `You are ${persona}. 
+Your job is to roast a user's ${exerciseContext}.
+
+You must respond with ONLY a valid JSON object (no markdown, no code block fences, no explanation) with these exact keys:
+{
+  "roast": "a hilarious, blunt 1-2 sentence roast in character",
+  "correction": "one precise, actionable biomechanical cue to fix the biggest flaw",
+  "severity": "mild" | "medium" | "savage",
+  "issue": "short 2-4 word summary of the form defect"
+}`;
+
+    const userPrompt = `Here is the user's ${exercise} attempt. Give me your roast and technical correction.`;
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    
     const response = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,7 +75,7 @@ router.post('/', async (req, res) => {
         contents: [
           {
             parts: [
-              { text: SYSTEM_PROMPT + '\n\n' + prompt }
+              { text: systemPrompt + '\n\n' + userPrompt }
             ]
           }
         ],
@@ -103,22 +96,19 @@ router.post('/', async (req, res) => {
     let responseText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!responseText) throw new Error('Empty response from Gemini');
 
-    // Clean potential markdown or extraneous whitespace
     responseText = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-
     const data = JSON.parse(responseText);
 
     res.json({ success: true, data });
   } catch (err) {
     console.error('Roast API error:', err.message);
-
-    // Graceful fallback — never let the UI break
-    const fallback = DEMO_RESPONSES[Math.floor(Math.random() * DEMO_RESPONSES.length)];
+    const exerciseKey = req.body.exercise || 'pushup';
+    const fallback = FALLBACKS[exerciseKey] || FALLBACKS.pushup;
     res.json({
       success: true,
       data: fallback,
       demo: true,
-      warning: 'Fell back to demo response: ' + err.message,
+      warning: 'Fallback activated: ' + err.message,
     });
   }
 });
