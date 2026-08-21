@@ -58,8 +58,8 @@ export default function ThreeCharacterStudio({
   const [selectedAngle, setSelectedAngle] = useState('auto');
   const [zoomLevel, setZoomLevel] = useState(3.0);
 
-  const targetCamPosRef = useRef(new THREE.Vector3(2.0, 0.5, 2.0));
-  const targetLookAtRef = useRef(new THREE.Vector3(0, 0.1, 0));
+  const targetCamPosRef = useRef(new THREE.Vector3(2.0, 0.8, 2.0));
+  const targetLookAtRef = useRef(new THREE.Vector3(0, 0.35, 0));
 
   const currentConfig = EXERCISE_CONFIG[exercise] || EXERCISE_CONFIG.squat;
   const effectiveAngle = selectedAngle === 'auto' 
@@ -76,7 +76,7 @@ export default function ThreeCharacterStudio({
     const height = container.clientHeight || 260;
 
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-    camera.position.set(2.0, 0.5, 2.0);
+    camera.position.set(2.0, 0.8, 2.0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
@@ -118,12 +118,12 @@ export default function ThreeCharacterStudio({
     });
     const floorPlane = new THREE.Mesh(floorGeo, floorMat);
     floorPlane.rotation.x = -Math.PI / 2;
-    floorPlane.position.y = -0.55;
+    floorPlane.position.y = -0.35;
     floorPlane.receiveShadow = true;
     scene.add(floorPlane);
 
     const gridHelper = new THREE.GridHelper(3.0, 12, 0xf97316, 0x475569);
-    gridHelper.position.y = -0.54;
+    gridHelper.position.y = -0.34;
     gridHelper.material.opacity = 0.25;
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
@@ -171,21 +171,21 @@ export default function ThreeCharacterStudio({
       const z = zoomLevel / 3.0;
       switch (effectiveAngle) {
         case 'side':
-          targetCamPosRef.current.set(2.6 * z, 0.35, 0.0);
-          targetLookAtRef.current.set(0, 0.1, 0);
+          targetCamPosRef.current.set(2.6 * z, 0.6, 0.0);
+          targetLookAtRef.current.set(0, 0.35, 0);
           break;
         case 'front':
-          targetCamPosRef.current.set(0, 0.35, 2.6 * z);
-          targetLookAtRef.current.set(0, 0.1, 0);
+          targetCamPosRef.current.set(0, 0.6, 2.6 * z);
+          targetLookAtRef.current.set(0, 0.35, 0);
           break;
         case 'top':
-          targetCamPosRef.current.set(1.5 * z, 2.2 * z, 1.5 * z);
-          targetLookAtRef.current.set(0, 0.1, 0);
+          targetCamPosRef.current.set(1.5 * z, 2.4 * z, 1.5 * z);
+          targetLookAtRef.current.set(0, 0.35, 0);
           break;
         case 'iso':
         default:
-          targetCamPosRef.current.set(2.0 * z, 0.5, 2.0 * z);
-          targetLookAtRef.current.set(0, 0.1, 0);
+          targetCamPosRef.current.set(2.0 * z, 0.8, 2.0 * z);
+          targetLookAtRef.current.set(0, 0.35, 0);
           break;
       }
     };
@@ -259,8 +259,8 @@ export default function ThreeCharacterStudio({
         const head = b['head'];
 
         if (exercise === 'squat') {
-          // Standing Squat: Centered in frame at Y = 0.0
-          modelRoot.position.set(0, 0.05 - k * 0.28, 0);
+          // Standing Squat: Centered at Y = 0.35
+          modelRoot.position.set(0, 0.35 - k * 0.28, 0);
           modelRoot.rotation.set(0, 0, 0);
 
           if (hips) hips.position.set(0, 0, 0);
@@ -276,7 +276,7 @@ export default function ThreeCharacterStudio({
           if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(k * 70), 0, THREE.MathUtils.degToRad(15));
           if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(k * 70), 0, THREE.MathUtils.degToRad(-15));
         } else if (exercise === 'pushup') {
-          modelRoot.position.set(0, -0.22 + (1 - k) * 0.22, 0);
+          modelRoot.position.set(0, 0.15 + (1 - k) * 0.22, 0);
           modelRoot.rotation.set(THREE.MathUtils.degToRad(85), 0, 0);
 
           if (hips) hips.rotation.set(0, 0, 0);
@@ -288,7 +288,7 @@ export default function ThreeCharacterStudio({
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
         } else if (exercise === 'situp') {
-          modelRoot.position.set(0, -0.28, 0);
+          modelRoot.position.set(0, 0.15, 0);
           modelRoot.rotation.set(THREE.MathUtils.degToRad(-85), 0, 0);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
@@ -305,7 +305,7 @@ export default function ThreeCharacterStudio({
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(55);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
-          modelRoot.position.set(0, -0.22, 0);
+          modelRoot.position.set(0, 0.15, 0);
           modelRoot.rotation.set(THREE.MathUtils.degToRad(85), 0, 0);
 
           const breathing = Math.sin(time * 6) * 0.006;
