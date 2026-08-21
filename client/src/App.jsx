@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Flame, Moon, Sun, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Play, Pause, RotateCcw, Flame, Moon, Sun, ChevronRight, Sparkles, Layers, Box, Camera } from 'lucide-react';
 import SevenStudioViewer from './components/SevenStudioViewer';
 import SevenTimerRing from './components/SevenTimerRing';
-import SevenRoastCard from './components/SevenRoastCard';
 import { sfx } from './utils/audioEffects';
 
 const WORKOUT_MOVES = [
@@ -13,13 +12,43 @@ const WORKOUT_MOVES = [
 ];
 
 const INSTRUCTORS = [
-  { id: 'humanoid', name: 'Coach Alex', icon: '🏃' },
-  { id: 'lego', name: 'Lego Coach', icon: '🧱' },
-  { id: 'woody', name: 'Sheriff Woody', icon: '🤠' },
-  { id: 'vader', name: 'Lord Vader', icon: '⚔️' },
+  { id: 'humanoid', name: 'Coach Alex', label: 'Coach Alex', icon: '🏃', tagline: 'The Hype Trainer' },
+  { id: 'duck', name: 'Quack Norris', label: 'Quack Norris', icon: '🦆', tagline: 'Sarcastic Duck' },
+  { id: 'lego', name: 'Brick Bro', label: 'Brick Bro', icon: '🧱', tagline: 'Lego Gym Rat' },
+  { id: 'vader', name: 'Darth Reps', label: 'Darth Reps', icon: '⚔️', tagline: 'Dark Lord of Core' },
 ];
 
+const VIEW_MODES = [
+  { id: '2d_vector', label: '2D Vector (Seven.app)', icon: Layers, desc: 'Ultra-light 60 FPS vector character skins' },
+  { id: '3d_mocap', label: '3D Orbit (FitCraft)', icon: Box, desc: 'Interactive 360° 3D studio' },
+  { id: 'real_athlete', label: 'Real Athlete (Pro)', icon: Camera, desc: 'Authentic gym demonstration' },
+];
+
+const PERSONA_ROASTS = {
+  humanoid: [
+    "Come on champion! You're dropping like a sack of unflavored protein powder! Tighten that core!",
+    "Are we doing pushups or taking a tactical gym floor nap? Chest down to 90 degrees!",
+    "Your form is looking solid, but let's see those triceps work on the lockout!"
+  ],
+  duck: [
+    "QUACK! Your elbows are flapping like a goose in a wind turbine! Lock those wings at 45 degrees!",
+    "I've seen bread with better structural integrity than your lower back right now. Quack up!",
+    "Not bad for a human with zero feathers, but your tail is sagging. Squeeze the glutes!"
+  ],
+  lego: [
+    "WARNING: Severe brick misalignment detected! Your spine is scattering loose pieces across the floor!",
+    "Snap those core pieces together! If you bend at the waist, your minifig torso pops off!",
+    "Solid brick structure! That's master builder pushup tension right there!"
+  ],
+  vader: [
+    "I find your lack of core tension... disturbing. The dark side does not tolerate sagging hips!",
+    "You were supposed to bring balance to the workout, not collapse on the floor!",
+    "Good... the pushup force is strong with this set. Continue the descent!"
+  ]
+};
+
 export default function App() {
+  const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | '3d_mocap' | 'real_athlete'
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
   const [character, setCharacter] = useState('humanoid');
   const [isActive, setIsActive] = useState(false);
@@ -73,8 +102,21 @@ export default function App() {
     setRoastData(null);
   };
 
+  const speakRoast = useCallback((text) => {
+    if ('speechSynthesis' in window && text) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.05;
+      u.pitch = character === 'duck' ? 1.45 : character === 'vader' ? 0.65 : character === 'lego' ? 1.15 : 1.0;
+      window.speechSynthesis.speak(u);
+    }
+  }, [character]);
+
   const handleFetchRoast = async () => {
     setIsLoadingRoast(true);
+    if (character === 'vader') sfx.playLightsaber();
+    else sfx.playWhistle();
+
     try {
       const res = await fetch('/api/roast', {
         method: 'POST',
@@ -89,23 +131,27 @@ export default function App() {
       const json = await res.json();
       if (json.success) {
         setRoastData(json.data);
+        speakRoast(`${json.data.roast} Cue: ${json.data.correction}`);
       }
     } catch (err) {
       console.warn('Roast fetch fallback:', err);
-      // Fallback
-      setRoastData({
-        roast: `Your ${currentMove.title} look like a newborn giraffe learning to ice skate. Lock your core!`,
-        correction: `Focus on rigid spinal tension and smooth cadence throughout the full ${currentMove.title} range.`,
+      const list = PERSONA_ROASTS[character] || PERSONA_ROASTS.humanoid;
+      const randomRoast = list[Math.floor(Math.random() * list.length)];
+      const fallbackData = {
+        roast: randomRoast,
+        correction: `Maintain a rigid 180° spinal plank and lower down until elbows reach 90° flexion.`,
         severity: 'savage',
-        issue: 'core instability',
-      });
+        issue: 'cadence and depth',
+      };
+      setRoastData(fallbackData);
+      speakRoast(`${fallbackData.roast} Cue: ${fallbackData.correction}`);
     } finally {
       setIsLoadingRoast(false);
     }
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-between p-4 md:p-6 transition-colors duration-300 ${isDarkMode ? 'bg-[#090D16] text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen flex flex-col items-center justify-between p-4 md:p-6 transition-colors duration-300 ${isDarkMode ? 'bg-[#080C14] text-white' : 'bg-slate-50 text-slate-900'}`}>
       
       {/* ── Top Mobile-First App Container ── */}
       <div className="w-full max-w-md mx-auto space-y-4">
@@ -114,34 +160,12 @@ export default function App() {
         <header className="flex items-center justify-between pt-2 pb-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl font-black tracking-tight text-orange-500 font-mono">SEVEN</span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 uppercase">
-              Roast Edition
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+              COMICAL EDITION
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Instructor Switcher Pills */}
-            <div className="flex items-center bg-slate-200/70 dark:bg-zinc-800/80 p-1 rounded-full text-xs">
-              {INSTRUCTORS.map((inst) => (
-                <button
-                  key={inst.id}
-                  onClick={() => {
-                    setCharacter(inst.id);
-                    if (inst.id === 'vader') sfx.playLightsaber();
-                    else sfx.playLegoSnap();
-                  }}
-                  className={`px-2.5 py-1 rounded-full font-bold transition-all flex items-center gap-1 ${
-                    character === inst.id
-                      ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900'
-                  }`}
-                  title={inst.name}
-                >
-                  <span>{inst.icon}</span>
-                </button>
-              ))}
-            </div>
-
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
@@ -153,33 +177,62 @@ export default function App() {
           </div>
         </header>
 
-        {/* ── Exercise Navigation Pills (The 4 MVP Moves) ── */}
-        <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-2xl p-1.5 shadow-sm">
-          {WORKOUT_MOVES.map((move, idx) => {
-            const isCurrent = currentMoveIdx === idx;
+        {/* ── Architecture Comparison Switcher (Path 1 vs Path 2) ── */}
+        <div className="bg-slate-200/70 dark:bg-zinc-900 border border-slate-300/60 dark:border-zinc-800 rounded-2xl p-1 flex items-center gap-1 shadow-inner">
+          {VIEW_MODES.map((mode) => {
+            const isSelected = viewMode === mode.id;
+            const Icon = mode.icon;
             return (
               <button
-                key={move.id}
-                onClick={() => handleSelectMove(idx)}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all text-center ${
-                  isCurrent
-                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                key={mode.id}
+                onClick={() => setViewMode(mode.id)}
+                className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-white dark:bg-zinc-800 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-200/50 dark:border-zinc-700/50'
                     : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
+                title={mode.desc}
               >
-                {move.title.split(' ')[0]}
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{mode.label.split(' ')[0]} {mode.label.split(' ')[1]}</span>
               </button>
             );
           })}
         </div>
 
-        {/* ── Seven Main Card ── */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-6 shadow-sm flex flex-col items-center text-center space-y-4">
+        {/* ── Comical Coach Personas Switcher (4 Swappable Skins) ── */}
+        <div className="grid grid-cols-4 gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-2xl p-1.5 shadow-sm">
+          {INSTRUCTORS.map((inst) => {
+            const isSelected = character === inst.id;
+            return (
+              <button
+                key={inst.id}
+                onClick={() => {
+                  setCharacter(inst.id);
+                  if (inst.id === 'vader') sfx.playLightsaber();
+                  else sfx.playLegoSnap();
+                  setRoastData(null);
+                }}
+                className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all ${
+                  isSelected
+                    ? 'bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/30 text-orange-600 dark:text-orange-400 shadow-sm'
+                    : 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400'
+                }`}
+              >
+                <span className="text-xl mb-0.5">{inst.icon}</span>
+                <span className="text-[10px] font-bold truncate max-w-full">{inst.name.split(' ')[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Main Exercise Card ── */}
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-5 md:p-6 shadow-sm flex flex-col items-center text-center space-y-4">
           
           {/* Move Info */}
           <div>
             <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">
-              Exercise {currentMoveIdx + 1} of {WORKOUT_MOVES.length}
+              1-Movement MVP • Exercise 1 of 1
             </div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
               {currentMove.title}
@@ -189,14 +242,16 @@ export default function App() {
             </p>
           </div>
 
-          {/* Seven Studio Display (Real Human Athlete + Comical 3D Avatars) */}
+          {/* Dual-Mode Studio Display (2D Vector vs 3D Orbit vs Real Athlete) */}
           <SevenStudioViewer
+            viewMode={viewMode}
             character={character}
             exercise={currentMove.id}
             isPlaying={isActive}
             roastData={roastData}
             onTriggerRoast={handleFetchRoast}
             isLoadingRoast={isLoadingRoast}
+            onVoicePlay={() => speakRoast(`${roastData?.roast} Cue: ${roastData?.correction}`)}
           />
 
           {/* Seven Circular Timer Ring */}
@@ -228,22 +283,23 @@ export default function App() {
               {isActive ? (
                 <>
                   <Pause className="w-5 h-5 fill-current" />
-                  <span>PAUSE WORKOUT</span>
+                  <span>PAUSE SET</span>
                 </>
               ) : (
                 <>
                   <Play className="w-5 h-5 fill-current" />
-                  <span>START SET</span>
+                  <span>START SET (30s)</span>
                 </>
               )}
             </button>
 
             <button
-              onClick={() => handleSelectMove((currentMoveIdx + 1) % WORKOUT_MOVES.length)}
-              className="p-3.5 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors"
-              title="Next exercise"
+              onClick={handleFetchRoast}
+              disabled={isLoadingRoast}
+              className="p-3.5 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 transition-colors"
+              title="Instant Coach Roast"
             >
-              <ChevronRight className="w-5 h-5" />
+              <Flame className={`w-5 h-5 fill-current ${isLoadingRoast ? 'animate-spin' : ''}`} />
             </button>
           </div>
 
@@ -253,7 +309,7 @@ export default function App() {
 
       {/* ── Footer ── */}
       <footer className="text-center py-4 text-[11px] text-slate-400 dark:text-zinc-600">
-        Seven: Roast Edition • Built with Gemini 3.6 Flash & Cloudflare
+        Seven: Comical Edition • 2D Vector & 3D Mocap Comparison • Built with Gemini 3.6 Flash
       </footer>
     </div>
   );
