@@ -130,13 +130,14 @@ export default function App() {
     setSecondsLeft(currentMove.duration);
   };
 
-  const speakRoast = useCallback((text) => {
+  const speakRoast = useCallback((text, targetChar) => {
     try {
+      const activeChar = targetChar || character;
       if (typeof window !== 'undefined' && 'speechSynthesis' in window && text) {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         u.rate = 1.05;
-        u.pitch = character === 'duck' ? 1.45 : character === 'vader' ? 0.65 : character === 'lego' ? 1.15 : 1.0;
+        u.pitch = activeChar === 'duck' ? 1.45 : activeChar === 'vader' ? 0.65 : activeChar === 'lego' ? 1.15 : 1.0;
         window.speechSynthesis.speak(u);
       }
     } catch (speechErr) {
@@ -156,18 +157,19 @@ export default function App() {
   };
 
   // ── Instant 0ms Zero-Latency Guaranteed Roast Execution ──────────────
-  const handleFetchRoast = () => {
+  const handleFetchRoast = (targetCharacter) => {
+    const activeChar = (typeof targetCharacter === 'string' && targetCharacter) ? targetCharacter : character;
     setIsLoadingRoast(true);
     try {
-      if (character === 'vader') sfx.playLightsaber();
-      else if (character === 'duck') sfx.playQuack();
-      else if (character === 'lego') sfx.playLegoSnap();
+      if (activeChar === 'vader') sfx.playLightsaber();
+      else if (activeChar === 'duck') sfx.playQuack();
+      else if (activeChar === 'lego') sfx.playLegoSnap();
       else sfx.playWhistle();
     } catch (e) {}
 
     // 1. INSTANT Guaranteed Delivery from Rich Non-Repeating Roast Library
-    const randomRoast = getRandomRoastForPersona(character);
-    const cue = PERSONA_CUES[character] || PERSONA_CUES.humanoid;
+    const randomRoast = getRandomRoastForPersona(activeChar);
+    const cue = PERSONA_CUES[activeChar] || PERSONA_CUES.humanoid;
     const roastPayload = {
       roast: randomRoast,
       correction: cue,
@@ -176,37 +178,12 @@ export default function App() {
     };
 
     setRoastData(roastPayload);
-    speakRoast(`${roastPayload.roast} Cue: ${roastPayload.correction}`);
+    speakRoast(`${roastPayload.roast} Cue: ${roastPayload.correction}`, activeChar);
 
     // 2. Brief animation bounce
     setTimeout(() => {
       setIsLoadingRoast(false);
-    }, 400);
-
-    // 3. Asynchronous background AI upgrade (if backend API is reachable)
-    const requestChar = character;
-    fetch('/api/roast', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        exercise: currentMove.id,
-        character: requestChar,
-        videoSource: 'live',
-        videoUrl: 'seven-app-form-check',
-      }),
-    })
-    .then(r => r.ok ? r.json() : null)
-    .then(json => {
-      if (json?.success && json?.data?.roast) {
-        setCharacter(currentChar => {
-          if (currentChar === requestChar) {
-            setRoastData(json.data);
-          }
-          return currentChar;
-        });
-      }
-    })
-    .catch(() => {});
+    }, 250);
   };
 
   return (
@@ -267,9 +244,7 @@ export default function App() {
                 key={inst.id}
                 onClick={() => {
                   setCharacter(inst.id);
-                  if (inst.id === 'vader') sfx.playLightsaber();
-                  else sfx.playLegoSnap();
-                  setRoastData(null);
+                  handleFetchRoast(inst.id);
                 }}
                 className={`py-2 px-1 rounded-xl text-center flex flex-col items-center justify-center transition-all ${
                   isSelected
@@ -307,9 +282,9 @@ export default function App() {
             exercise={currentMove.id}
             isPlaying={isActive}
             roastData={roastData}
-            onTriggerRoast={handleFetchRoast}
+            onTriggerRoast={() => handleFetchRoast(character)}
             isLoadingRoast={isLoadingRoast}
-            onVoicePlay={() => speakRoast(`${roastData?.roast} Cue: ${roastData?.correction}`)}
+            onVoicePlay={() => speakRoast(`${roastData?.roast} Cue: ${roastData?.correction}`, character)}
           />
 
           {/* Seven Circular Timer Ring */}
@@ -352,9 +327,9 @@ export default function App() {
             </button>
 
             <button
-              onClick={handleFetchRoast}
+              onClick={() => handleFetchRoast(character)}
               disabled={isLoadingRoast}
-              className="p-3.5 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 transition-colors"
+              className="p-3.5 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20 transition-colors active:scale-95"
               title="Instant Coach Roast"
             >
               <Flame className={`w-5 h-5 fill-current ${isLoadingRoast ? 'animate-spin' : ''}`} />
