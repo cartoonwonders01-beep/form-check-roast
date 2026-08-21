@@ -76,7 +76,7 @@ const PERSONA_ROASTS = {
 };
 
 export default function App() {
-  const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | 'form_xray' | 'real_athlete'
+  const [viewMode, setViewMode] = useState('form_xray'); // '2d_vector' | 'form_xray' | 'real_athlete'
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
   const [character, setCharacter] = useState('vader');
   const [isActive, setIsActive] = useState(false);
