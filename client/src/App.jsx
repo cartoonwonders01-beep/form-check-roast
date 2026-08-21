@@ -75,10 +75,17 @@ const PERSONA_ROASTS = {
   ]
 };
 
+const PERSONA_CUES = {
+  duck: "Quack tight! Lock wings at 45 degrees and don't let tail feathers droop.",
+  vader: "Channel dark side discipline: maintain a rigid horizontal spinal line.",
+  lego: "Snap core into a rigid 180-degree plate. Zero loose bricks allowed.",
+  humanoid: "Lower down with 2-second tempo until elbows reach 90-degree flexion."
+};
+
 export default function App() {
-  const [viewMode, setViewMode] = useState('form_xray'); // '2d_vector' | 'form_xray' | 'real_athlete'
+  const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | 'form_xray' | 'real_athlete'
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
-  const [character, setCharacter] = useState('vader');
+  const [character, setCharacter] = useState('duck');
   const [isActive, setIsActive] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isRest, setIsRest] = useState(false);
@@ -133,7 +140,7 @@ export default function App() {
         window.speechSynthesis.speak(u);
       }
     } catch (speechErr) {
-      console.warn('Speech synthesis bypassed:', speechErr);
+      console.warn('Speech synthesis error:', speechErr);
     }
   }, [character]);
 
@@ -148,59 +155,48 @@ export default function App() {
     return list[nextIdx];
   };
 
-  const handleFetchRoast = async () => {
+  // ── Instant 0ms Zero-Latency Guaranteed Roast Execution ──────────────
+  const handleFetchRoast = () => {
     setIsLoadingRoast(true);
     if (character === 'vader') sfx.playLightsaber();
     else sfx.playWhistle();
 
-    // Instant, safe, non-crashing roast retrieval
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
-
-      const res = await fetch('/api/roast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exercise: currentMove.id,
-          character,
-          videoSource: 'live',
-          videoUrl: 'seven-app-form-check',
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.success && json?.data?.roast) {
-          setRoastData(json.data);
-          speakRoast(`${json.data.roast} Cue: ${json.data.correction}`);
-          setIsLoadingRoast(false);
-          return;
-        }
-      }
-    } catch (err) {
-      // Quietly continue to rich instant fallback
-    }
-
-    // Fallback using rich, non-repeating hilarious roast library
+    // 1. INSTANT Guaranteed Delivery from Rich Non-Repeating Roast Library
     const randomRoast = getRandomRoastForPersona(character);
-    const fallbackData = {
+    const cue = PERSONA_CUES[character] || PERSONA_CUES.humanoid;
+    const roastPayload = {
       roast: randomRoast,
-      correction: character === 'duck' 
-        ? "Quack tight! Lock wings at 45 degrees and don't let tail feathers droop." 
-        : character === 'vader' 
-        ? "Channel dark side discipline: maintain a rigid horizontal spinal line." 
-        : character === 'lego'
-        ? "Snap core into a rigid 180-degree plate. Zero loose bricks allowed."
-        : "Lower down with 2-second tempo until elbows reach 90-degree flexion.",
+      correction: cue,
       severity: 'savage',
-      issue: 'cadence and depth',
+      issue: 'Biomechanics Breakdown'
     };
-    setRoastData(fallbackData);
-    speakRoast(`${fallbackData.roast} Cue: ${fallbackData.correction}`);
-    setIsLoadingRoast(false);
+
+    setRoastData(roastPayload);
+    speakRoast(`${roastPayload.roast} Cue: ${roastPayload.correction}`);
+
+    // 2. Brief animation bounce
+    setTimeout(() => {
+      setIsLoadingRoast(false);
+    }, 400);
+
+    // 3. Asynchronous background AI upgrade (if backend API is reachable)
+    fetch('/api/roast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        exercise: currentMove.id,
+        character,
+        videoSource: 'live',
+        videoUrl: 'seven-app-form-check',
+      }),
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(json => {
+      if (json?.success && json?.data?.roast) {
+        setRoastData(json.data);
+      }
+    })
+    .catch(() => {});
   };
 
   return (
