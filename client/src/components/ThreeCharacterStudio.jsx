@@ -84,12 +84,12 @@ export default function ThreeCharacterStudio({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.35;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     // ── 2. 3-POINT STUDIO LIGHTING ────────────────────────────────────
-    const keyLight = new THREE.DirectionalLight(0xfff8f0, 3.2);
+    const keyLight = new THREE.DirectionalLight(0xfff8f0, 3.4);
     keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -97,7 +97,7 @@ export default function ThreeCharacterStudio({
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.4);
     rimLight.position.set(-3.5, 3.0, -3.0);
     scene.add(rimLight);
 
@@ -109,12 +109,12 @@ export default function ThreeCharacterStudio({
     scene.add(ambientLight);
 
     // Floor Shadow & Grid
-    const floorGeo = new THREE.CircleGeometry(1.6, 64);
+    const floorGeo = new THREE.CircleGeometry(1.8, 64);
     const floorMat = new THREE.MeshStandardMaterial({ 
       color: 0x000000, 
       roughness: 0.8,
       transparent: true,
-      opacity: 0.18
+      opacity: 0.22
     });
     const floorPlane = new THREE.Mesh(floorGeo, floorMat);
     floorPlane.rotation.x = -Math.PI / 2;
@@ -128,7 +128,7 @@ export default function ThreeCharacterStudio({
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    // ── 3. LOAD RIGGED 3D HUMAN SKELETON MODEL ────────────────────────
+    // ── 3. LOAD FULLY TEXTURED 3D RIGGED SKELETON (Soldier.glb) ───────
     const modelRoot = new THREE.Group();
     scene.add(modelRoot);
 
@@ -136,7 +136,7 @@ export default function ThreeCharacterStudio({
     let isRigReady = false;
 
     const loader = new GLTFLoader();
-    const modelPath = character === 'woody' ? '/models/Soldier.glb' : '/models/Xbot.glb';
+    const modelPath = '/models/Soldier.glb';
 
     loader.load(
       modelPath,
@@ -150,7 +150,7 @@ export default function ThreeCharacterStudio({
             child.castShadow = true;
             child.receiveShadow = true;
             if (child.material) {
-              child.material.roughness = 0.45;
+              child.material.roughness = 0.4;
               child.material.metalness = 0.1;
             }
           }
@@ -167,28 +167,26 @@ export default function ThreeCharacterStudio({
       (err) => console.warn('GLB load error:', err)
     );
 
-    // ── 4. CAMERA PRESETS POSITION CONFIG (Centered Calibration) ──────
+    // ── 4. CAMERA PRESETS POSITION CONFIG ─────────────────────────────
     const updateCameraTarget = () => {
       const z = zoomLevel / 3.0;
       switch (effectiveAngle) {
         case 'side':
-          // Centered side profile with zero clipping
-          targetCamPosRef.current.set(2.8 * z, 0.4, 0.0);
-          targetLookAtRef.current.set(0, -0.1, 0);
+          targetCamPosRef.current.set(2.7 * z, 0.35, 0.0);
+          targetLookAtRef.current.set(0, -0.05, 0);
           break;
         case 'front':
-          targetCamPosRef.current.set(0, 0.5, 2.8 * z);
-          targetLookAtRef.current.set(0, -0.1, 0);
+          targetCamPosRef.current.set(0, 0.45, 2.7 * z);
+          targetLookAtRef.current.set(0, -0.05, 0);
           break;
         case 'top':
-          targetCamPosRef.current.set(1.5 * z, 2.5 * z, 1.5 * z);
+          targetCamPosRef.current.set(1.5 * z, 2.4 * z, 1.5 * z);
           targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'iso':
         default:
-          // 45-degree Quarter View
-          targetCamPosRef.current.set(2.1 * z, 0.7, 2.1 * z);
-          targetLookAtRef.current.set(0, -0.1, 0);
+          targetCamPosRef.current.set(2.0 * z, 0.65, 2.0 * z);
+          targetLookAtRef.current.set(0, -0.05, 0);
           break;
       }
     };
@@ -230,7 +228,7 @@ export default function ThreeCharacterStudio({
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. SKELETAL MOVEMENT LOOP (Centered Anatomy) ──────────────────
+    // ── 6. SKELETAL MOVEMENT LOOP (Perfect Centering) ──────────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -262,8 +260,8 @@ export default function ThreeCharacterStudio({
         const head = b['head'];
 
         if (exercise === 'pushup') {
-          // Centered Horizontal Plank along Z
-          modelRoot.position.set(0, -0.26 + (1 - k) * 0.26, 0.35);
+          // Centered along Z by shifting model to -0.32
+          modelRoot.position.set(0, -0.26 + (1 - k) * 0.26, -0.32);
           modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           if (hips) hips.rotation.set(0, 0, 0);
@@ -295,7 +293,7 @@ export default function ThreeCharacterStudio({
           if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
         } else if (exercise === 'situp') {
           // Centered Sit-up
-          modelRoot.position.set(0, -0.32, 0.25);
+          modelRoot.position.set(0, -0.32, -0.22);
           modelRoot.rotation.x = THREE.MathUtils.degToRad(-82);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
@@ -313,7 +311,7 @@ export default function ThreeCharacterStudio({
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
           // Centered Plank
-          modelRoot.position.set(0, -0.26, 0.35);
+          modelRoot.position.set(0, -0.26, -0.32);
           modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           const breathing = Math.sin(time * 6) * 0.006;
