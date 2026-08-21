@@ -89,7 +89,7 @@ export default function ThreeCharacterStudio({
     container.appendChild(renderer.domElement);
 
     // ── 2. 3-POINT STUDIO LIGHTING ────────────────────────────────────
-    const keyLight = new THREE.DirectionalLight(0xfff8f0, 3.4);
+    const keyLight = new THREE.DirectionalLight(0xfff8f0, 3.5);
     keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -128,7 +128,7 @@ export default function ThreeCharacterStudio({
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    // ── 3. LOAD FULLY TEXTURED 3D RIGGED SKELETON (Soldier.glb) ───────
+    // ── 3. LOAD FULLY RIGGED 3D HUMAN SKELETON ────────────────────────
     const modelRoot = new THREE.Group();
     scene.add(modelRoot);
 
@@ -136,10 +136,8 @@ export default function ThreeCharacterStudio({
     let isRigReady = false;
 
     const loader = new GLTFLoader();
-    const modelPath = '/models/Soldier.glb';
-
     loader.load(
-      modelPath,
+      '/models/Soldier.glb',
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(0.68, 0.68, 0.68);
@@ -228,7 +226,7 @@ export default function ThreeCharacterStudio({
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. SKELETAL MOVEMENT LOOP (Perfect Centering) ──────────────────
+    // ── 6. SKELETAL MOVEMENT LOOP (Flawless Centering) ─────────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -260,8 +258,8 @@ export default function ThreeCharacterStudio({
         const head = b['head'];
 
         if (exercise === 'pushup') {
-          // Centered along Z by shifting model to -0.32
-          modelRoot.position.set(0, -0.26 + (1 - k) * 0.26, -0.32);
+          // Perfectly centered in viewport (+0.75 along Z)
+          modelRoot.position.set(0, -0.26 + (1 - k) * 0.26, 0.75);
           modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           if (hips) hips.rotation.set(0, 0, 0);
@@ -292,8 +290,8 @@ export default function ThreeCharacterStudio({
           if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
           if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
         } else if (exercise === 'situp') {
-          // Centered Sit-up
-          modelRoot.position.set(0, -0.32, -0.22);
+          // Centered Sit-up (+0.60 along Z)
+          modelRoot.position.set(0, -0.32, 0.60);
           modelRoot.rotation.x = THREE.MathUtils.degToRad(-82);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
@@ -310,8 +308,8 @@ export default function ThreeCharacterStudio({
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(55);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
-          // Centered Plank
-          modelRoot.position.set(0, -0.26, -0.32);
+          // Centered Plank (+0.75 along Z)
+          modelRoot.position.set(0, -0.26, 0.75);
           modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           const breathing = Math.sin(time * 6) * 0.006;
