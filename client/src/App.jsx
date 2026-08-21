@@ -20,7 +20,7 @@ const INSTRUCTORS = [
 ];
 
 export default function App() {
-  const [currentMoveIdx, setCurrentMoveIdx] = useState(1);
+  const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
   const [character, setCharacter] = useState('humanoid');
   const [isActive, setIsActive] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(30);
