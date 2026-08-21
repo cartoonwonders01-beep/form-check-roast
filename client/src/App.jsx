@@ -158,8 +158,12 @@ export default function App() {
   // ── Instant 0ms Zero-Latency Guaranteed Roast Execution ──────────────
   const handleFetchRoast = () => {
     setIsLoadingRoast(true);
-    if (character === 'vader') sfx.playLightsaber();
-    else sfx.playWhistle();
+    try {
+      if (character === 'vader') sfx.playLightsaber();
+      else if (character === 'duck') sfx.playQuack();
+      else if (character === 'lego') sfx.playLegoSnap();
+      else sfx.playWhistle();
+    } catch (e) {}
 
     // 1. INSTANT Guaranteed Delivery from Rich Non-Repeating Roast Library
     const randomRoast = getRandomRoastForPersona(character);
