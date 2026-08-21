@@ -384,6 +384,37 @@ export default function VectorPushupAnimator({
           </svg>
         </div>
 
+        {/* ── Comic Speech Balloon Floating on Top of Character ── */}
+        {roastData && (
+          <div className="absolute top-12 left-4 right-4 z-20 animate-in fade-in zoom-in-95 duration-200">
+            <div className={`relative px-4 py-2.5 rounded-2xl shadow-2xl border ${
+              isVader 
+                ? 'bg-black/95 text-red-400 border-red-500/60 shadow-red-950/50' 
+                : 'bg-white/95 text-slate-900 border-amber-400/80 shadow-orange-500/20 dark:bg-zinc-900/95 dark:text-orange-200 dark:border-orange-500/50'
+            }`}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs md:text-sm font-black leading-snug tracking-tight text-left">
+                  "{roastData.roast}"
+                </p>
+                <button
+                  onClick={onVoicePlay}
+                  className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-orange-500 shrink-0"
+                  title="Replay Voice"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Comic Speech Pointer Triangle */}
+              <div className={`absolute -bottom-2 left-16 w-3 h-3 rotate-45 border-r border-b ${
+                isVader 
+                  ? 'bg-black border-red-500/60' 
+                  : 'bg-white dark:bg-zinc-900 border-amber-400/80 dark:border-orange-500/50'
+              }`} />
+            </div>
+          </div>
+        )}
+
         {/* Floating Quick Roast Button */}
         <button
           onClick={onTriggerRoast}

@@ -157,6 +157,34 @@ export default function SavageXRayScanner({
           </svg>
         </div>
 
+        {/* ── Cyber Diagnostic HUD Floating on Top of Scanner ── */}
+        {roastData && (
+          <div className="absolute top-12 left-4 right-4 z-20 animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative bg-black/95 text-cyan-300 border border-cyan-400/60 rounded-2xl p-3 shadow-2xl shadow-cyan-500/30">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[9px] font-mono text-cyan-400 font-bold uppercase tracking-widest flex items-center gap-1 mb-0.5">
+                    <Flame className="w-2.5 h-2.5 fill-current" /> DIAGNOSTIC FAULT
+                  </div>
+                  <p className="text-xs md:text-sm font-mono font-bold leading-snug text-left text-white">
+                    "{roastData.roast}"
+                  </p>
+                </div>
+                <button
+                  onClick={onVoicePlay}
+                  className="p-1 rounded-full hover:bg-cyan-500/20 text-cyan-400 shrink-0"
+                  title="Replay Voice"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Pointer */}
+              <div className="absolute -bottom-2 left-16 w-3 h-3 rotate-45 bg-black border-r border-b border-cyan-400/60" />
+            </div>
+          </div>
+        )}
+
         {/* Floating Quick Roast Button */}
         <button
           onClick={onTriggerRoast}
