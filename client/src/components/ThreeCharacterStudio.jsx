@@ -8,7 +8,7 @@ const EXERCISE_CONFIG = {
     title: 'Press-ups',
     primaryMuscles: ['Pectorals (Chest)', 'Triceps Brachii'],
     secondaryMuscles: ['Anterior Deltoids', 'Core / Abs'],
-    optimalAngle: 'side',
+    optimalAngle: 'iso',
     targetDepth: '90° Elbow Flexion',
     tempo: '2s Down • 1s Pause • 1s Up'
   },
@@ -24,7 +24,7 @@ const EXERCISE_CONFIG = {
     title: 'Sit-ups',
     primaryMuscles: ['Rectus Abdominis (Core)'],
     secondaryMuscles: ['Hip Flexors', 'Obliques'],
-    optimalAngle: 'side',
+    optimalAngle: 'iso',
     targetDepth: '70° Upright Spinal Curl',
     tempo: '2s Up • 2s Controlled Descent'
   },
@@ -32,7 +32,7 @@ const EXERCISE_CONFIG = {
     title: 'Plank Hold',
     primaryMuscles: ['Transverse Abdominis', 'Core Stabilizers'],
     secondaryMuscles: ['Glutes', 'Deltoids', 'Quads'],
-    optimalAngle: 'side',
+    optimalAngle: 'iso',
     targetDepth: '180° Neutral Spinal Line',
     tempo: 'Isometric Continuous Hold'
   }
@@ -40,15 +40,15 @@ const EXERCISE_CONFIG = {
 
 const CAMERA_PRESETS = [
   { id: 'auto', label: 'Smart' },
-  { id: 'side', label: 'Side (90°)' },
   { id: 'iso', label: '3D Quarter' },
+  { id: 'side', label: 'Side (90°)' },
   { id: 'front', label: 'Front' },
   { id: 'top', label: 'Top' },
 ];
 
 export default function ThreeCharacterStudio({ 
   character = 'humanoid', 
-  exercise = 'pushup', 
+  exercise = 'squat', 
   isPlaying = true,
   roastData,
   onTriggerRoast,
@@ -58,12 +58,12 @@ export default function ThreeCharacterStudio({
   const [selectedAngle, setSelectedAngle] = useState('auto');
   const [zoomLevel, setZoomLevel] = useState(3.0);
 
-  const targetCamPosRef = useRef(new THREE.Vector3(0, 1.0, 3.0));
-  const targetLookAtRef = useRef(new THREE.Vector3(0, 0.0, 0));
+  const targetCamPosRef = useRef(new THREE.Vector3(2.0, 0.6, 2.0));
+  const targetLookAtRef = useRef(new THREE.Vector3(0, -0.2, 0));
 
-  const currentConfig = EXERCISE_CONFIG[exercise] || EXERCISE_CONFIG.pushup;
+  const currentConfig = EXERCISE_CONFIG[exercise] || EXERCISE_CONFIG.squat;
   const effectiveAngle = selectedAngle === 'auto' 
-    ? (currentConfig.optimalAngle || 'side')
+    ? (currentConfig.optimalAngle || 'iso')
     : selectedAngle;
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function ThreeCharacterStudio({
     const height = container.clientHeight || 260;
 
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-    camera.position.set(0, 1.0, 3.0);
+    camera.position.set(2.0, 0.6, 2.0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
@@ -171,20 +171,20 @@ export default function ThreeCharacterStudio({
       switch (effectiveAngle) {
         case 'side':
           targetCamPosRef.current.set(2.6 * z, 0.4, 0.0);
-          targetLookAtRef.current.set(0, 0.0, 0);
+          targetLookAtRef.current.set(0, -0.2, 0);
           break;
         case 'front':
-          targetCamPosRef.current.set(0, 0.5, 2.6 * z);
-          targetLookAtRef.current.set(0, 0.0, 0);
+          targetCamPosRef.current.set(0, 0.45, 2.6 * z);
+          targetLookAtRef.current.set(0, -0.2, 0);
           break;
         case 'top':
           targetCamPosRef.current.set(1.5 * z, 2.4 * z, 1.5 * z);
-          targetLookAtRef.current.set(0, 0.0, 0);
+          targetLookAtRef.current.set(0, -0.2, 0);
           break;
         case 'iso':
         default:
           targetCamPosRef.current.set(2.0 * z, 0.65, 2.0 * z);
-          targetLookAtRef.current.set(0, 0.0, 0);
+          targetLookAtRef.current.set(0, -0.2, 0);
           break;
       }
     };
@@ -257,26 +257,10 @@ export default function ThreeCharacterStudio({
         const rightFoot = b['rightfoot'];
         const head = b['head'];
 
-        if (exercise === 'pushup') {
-          // Perfectly framed horizontal plank
-          modelRoot.position.set(0, -0.22 + (1 - k) * 0.24, 0.45);
-          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
-
-          if (hips) hips.rotation.set(0, 0, 0);
-          if (spine) spine.rotation.set(0, 0, 0);
-          if (head) head.rotation.x = THREE.MathUtils.degToRad(-15);
-
-          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(25 + k * 30));
-          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(-25 - k * 30));
-          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
-          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
-
-          if (leftFoot) leftFoot.rotation.x = THREE.MathUtils.degToRad(75);
-          if (rightFoot) rightFoot.rotation.x = THREE.MathUtils.degToRad(75);
-        } else if (exercise === 'squat') {
-          // Standing Squat on Floor
-          modelRoot.position.set(0, -0.48 - k * 0.34, 0);
-          modelRoot.rotation.x = 0;
+        if (exercise === 'squat') {
+          // Standing Squat centered on floor
+          modelRoot.position.set(0, -0.48 - k * 0.32, 0);
+          modelRoot.rotation.set(0, -Math.PI / 6, 0);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 26);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 10);
@@ -289,10 +273,26 @@ export default function ThreeCharacterStudio({
 
           if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
           if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
+        } else if (exercise === 'pushup') {
+          // Horizontal Plank on Floor
+          modelRoot.position.set(0, -0.32 + (1 - k) * 0.22, 0);
+          modelRoot.rotation.set(THREE.MathUtils.degToRad(82), -Math.PI / 4, 0);
+
+          if (hips) hips.rotation.set(0, 0, 0);
+          if (spine) spine.rotation.set(0, 0, 0);
+          if (head) head.rotation.x = THREE.MathUtils.degToRad(-15);
+
+          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(25 + k * 30));
+          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(-25 - k * 30));
+          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
+          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
+
+          if (leftFoot) leftFoot.rotation.x = THREE.MathUtils.degToRad(75);
+          if (rightFoot) rightFoot.rotation.x = THREE.MathUtils.degToRad(75);
         } else if (exercise === 'situp') {
           // Supine Sit-up
-          modelRoot.position.set(0, -0.28, 0.40);
-          modelRoot.rotation.x = THREE.MathUtils.degToRad(-82);
+          modelRoot.position.set(0, -0.32, 0);
+          modelRoot.rotation.set(THREE.MathUtils.degToRad(-82), -Math.PI / 4, 0);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 22);
@@ -309,8 +309,8 @@ export default function ThreeCharacterStudio({
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
           // Plank Hold on Floor
-          modelRoot.position.set(0, -0.22, 0.45);
-          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
+          modelRoot.position.set(0, -0.32, 0);
+          modelRoot.rotation.set(THREE.MathUtils.degToRad(82), -Math.PI / 4, 0);
 
           const breathing = Math.sin(time * 6) * 0.006;
           if (spine) spine.position.y = breathing;
