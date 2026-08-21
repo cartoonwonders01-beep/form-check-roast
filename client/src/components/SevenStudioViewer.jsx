@@ -33,6 +33,7 @@ export default function SevenStudioViewer({
         roastData={roastData}
         onTriggerRoast={onTriggerRoast}
         isLoadingRoast={isLoadingRoast}
+        onVoicePlay={onVoicePlay}
       />
     );
   }

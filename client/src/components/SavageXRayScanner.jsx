@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Scan, AlertTriangle, ShieldCheck, Flame, Zap } from 'lucide-react';
+import { Scan, AlertTriangle, ShieldCheck, Flame, Zap, Volume2, Sparkles } from 'lucide-react';
 
 export default function SavageXRayScanner({
   isPlaying = true,
   character = 'humanoid',
+  roastData,
   onTriggerRoast,
-  isLoadingRoast
+  isLoadingRoast,
+  onVoicePlay
 }) {
   const [phase, setPhase] = useState(0);
   const [scanPulse, setScanPulse] = useState(0);
@@ -94,26 +96,22 @@ export default function SavageXRayScanner({
             <text x="300" y="215" fill="#67e8f9" fontSize="9" fontFamily="monospace">PIVOT [X320]</text>
 
             {/* Neon Skeletal Bones */}
-            {/* Leg Chain (Hip -> Foot) */}
             <line 
               x1={240 - phase * 4} y1={125 + sinkY} 
               x2="320" y2="198" 
               stroke="#38bdf8" strokeWidth="6" strokeLinecap="round" strokeOpacity="0.8"
             />
-            {/* Spine Line (Shoulder -> Hip) */}
             <line 
               x1={135 - phase * 6} y1={115 + sinkY} 
               x2={240 - phase * 4} y2={125 + sinkY} 
               stroke={phase > 0.8 ? "#22c55e" : "#06b6d4"} strokeWidth="8" strokeLinecap="round" 
             />
-            {/* Neck to Cranium */}
             <line 
               x1={135 - phase * 6} y1={115 + sinkY} 
               x2={105 - phase * 8} y2={98 + sinkY} 
               stroke="#06b6d4" strokeWidth="5" strokeLinecap="round" 
             />
 
-            {/* Cranium Circle Scanner */}
             <circle 
               cx={105 - phase * 8} cy={98 + sinkY} r="18" 
               fill="none" stroke="#22d3ee" strokeWidth="2" strokeDasharray="3 3" 
@@ -123,7 +121,7 @@ export default function SavageXRayScanner({
               fill="#22d3ee" fillOpacity="0.6" 
             />
 
-            {/* Arm Kinetic Chain: Shoulder -> Elbow -> Hand */}
+            {/* Arm Kinetic Chain */}
             <line 
               x1={135 - phase * 6} y1={115 + sinkY} 
               x2={108 - phase * 32} y2={145 + sinkY * 0.7} 
@@ -135,14 +133,12 @@ export default function SavageXRayScanner({
               stroke="#f43f5e" strokeWidth="6" strokeLinecap="round" 
             />
 
-            {/* Elbow Hinge Load Node */}
             <circle 
               cx={108 - phase * 32} cy={145 + sinkY * 0.7} r={8 + (scanPulse > 0 ? 2 : 0)} 
               fill="#f43f5e" fillOpacity="0.3" stroke="#fb7185" strokeWidth="2" 
             />
             <circle cx={108 - phase * 32} cy={145 + sinkY * 0.7} r="3" fill="#ffffff" />
             
-            {/* Dynamic Joint Angle Callout Tag */}
             <g transform={`translate(${108 - phase * 32 - 45}, ${145 + sinkY * 0.7 - 18})`}>
               <rect width="40" height="16" rx="4" fill="#0f172a" stroke="#f43f5e" strokeWidth="1" />
               <text x="20" y="11" fill="#fb7185" fontSize="9" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
@@ -150,7 +146,6 @@ export default function SavageXRayScanner({
               </text>
             </g>
 
-            {/* Core Stability Tension Zone */}
             <circle 
               cx={(135 - phase * 6 + 240 - phase * 4)/2} 
               cy={(115 + sinkY + 125 + sinkY)/2} 
@@ -207,6 +202,36 @@ export default function SavageXRayScanner({
           </div>
         </div>
       </div>
+
+      {/* ── Prominent Diagnostic Roast Speech Bubble ── */}
+      {roastData && (
+        <div className="w-full bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-3.5 shadow-sm space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-cyan-400 fill-current" />
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-300">
+                Diagnostic Scan Verdict
+              </span>
+            </div>
+            <button
+              onClick={onVoicePlay}
+              className="p-1 rounded-full hover:bg-cyan-500/20 text-cyan-400 transition-colors"
+              title="Play voice"
+            >
+              <Volume2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <p className="text-xs md:text-sm font-bold text-cyan-100 font-mono leading-snug">
+            "{roastData.roast}"
+          </p>
+
+          <div className="text-[11px] text-cyan-300/80 font-medium font-mono flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-cyan-400 shrink-0" />
+            <span>Telemetry Cue: {roastData.correction}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
