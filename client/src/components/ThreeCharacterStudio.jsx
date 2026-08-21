@@ -9,32 +9,28 @@ const EXERCISE_CONFIG = {
     secondaryMuscles: ['Anterior Deltoids', 'Core / Rectus Abdominis'],
     optimalAngle: 'side',
     targetDepth: '90° Elbow Flexion',
-    tempo: '2s Down • 1s Pause • 1s Up',
-    glowColor: 0xf97316 // Fiery Orange
+    tempo: '2s Down • 1s Pause • 1s Up'
   },
   squat: {
     primaryMuscles: ['Quadriceps', 'Gluteus Maximus'],
     secondaryMuscles: ['Hamstrings', 'Core Stabilizers'],
     optimalAngle: 'iso',
     targetDepth: 'Femur Parallel to Floor',
-    tempo: '3s Down • 1s Pause • 2s Up',
-    glowColor: 0x06b6d4 // Cyan
+    tempo: '3s Down • 1s Pause • 2s Up'
   },
   situp: {
     primaryMuscles: ['Rectus Abdominis (Core)'],
     secondaryMuscles: ['Hip Flexors', 'Obliques'],
     optimalAngle: 'side',
     targetDepth: '70° Upright Spinal Curl',
-    tempo: '2s Up • 2s Controlled Descent',
-    glowColor: 0x8b5cf6 // Violet
+    tempo: '2s Up • 2s Controlled Descent'
   },
   plank: {
     primaryMuscles: ['Transverse Abdominis', 'Core Stabilizers'],
     secondaryMuscles: ['Glutes', 'Deltoids', 'Quads'],
     optimalAngle: 'side',
     targetDepth: '180° Neutral Spinal Line',
-    tempo: 'Isometric Continuous Hold',
-    glowColor: 0x10b981 // Emerald
+    tempo: 'Isometric Continuous Hold'
   }
 };
 
@@ -57,7 +53,6 @@ export default function ThreeCharacterStudio({
   const containerRef = useRef(null);
   const [selectedAngle, setSelectedAngle] = useState('auto');
   const [zoomLevel, setZoomLevel] = useState(3.2);
-  const [highlightMuscles, setHighlightMuscles] = useState(true);
 
   const targetCamPosRef = useRef(new THREE.Vector3(0, 1.1, 3.2));
   const targetLookAtRef = useRef(new THREE.Vector3(0, 0.15, 0));
@@ -89,8 +84,8 @@ export default function ThreeCharacterStudio({
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // ── 2. STUDIO 3-POINT LIGHTING (FitCraft Aesthetic) ──────────────
-    const keyLight = new THREE.DirectionalLight(0xfff8f0, 2.5);
+    // ── 2. FITCRAFT 3-POINT STUDIO LIGHTING ───────────────────────────
+    const keyLight = new THREE.DirectionalLight(0xfff8f0, 2.8);
     keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -106,37 +101,32 @@ export default function ThreeCharacterStudio({
     fillLight.position.set(-2.0, 1.0, 3.0);
     scene.add(fillLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
 
     // Subtle FitCraft Floor Grid
     const gridHelper = new THREE.GridHelper(3.0, 12, 0xf97316, 0x334155);
     gridHelper.position.y = -0.58;
-    gridHelper.material.opacity = 0.2;
+    gridHelper.material.opacity = 0.25;
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    // ── 3. LOAD RIGGED 3D MODEL WITH TARGET MUSCLE GLOW ───────────────
-    const modelGroup = new THREE.Group();
-    scene.add(modelGroup);
+    // ── 3. LOAD RIGGED 3D HUMAN SKELETON (GLTF / GLB) ─────────────────
+    const modelRoot = new THREE.Group();
+    scene.add(modelRoot);
 
-    let bones = {};
+    const b = {};
     let isRigReady = false;
-    let chestMesh = null;
-    let thighMeshes = [];
 
     const loader = new GLTFLoader();
-    const modelUrl = character === 'woody' || character === 'vader' 
-      ? '/models/Soldier.glb' 
-      : '/models/Xbot.glb';
-
     loader.load(
-      modelUrl,
+      '/models/Xbot.glb',
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(0.72, 0.72, 0.72);
         model.position.y = -0.55;
 
+        // Traverse all children and map bones by normalized name
         model.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
@@ -147,15 +137,17 @@ export default function ThreeCharacterStudio({
             }
           }
           if (child.isBone) {
-            bones[child.name] = child;
+            // Normalize name: "mixamorig:LeftArm" -> "leftarm"
+            const norm = child.name.toLowerCase().replace(/mixamorig:?/g, '').replace(/[^a-z0-9]/g, '');
+            b[norm] = child;
           }
         });
 
-        modelGroup.add(model);
+        modelRoot.add(model);
         isRigReady = true;
       },
       undefined,
-      (err) => console.warn('GLB load fallback:', err)
+      (err) => console.warn('GLB load error:', err)
     );
 
     // ── 4. CAMERA PRESETS POSITION CONFIG ─────────────────────────────
@@ -184,7 +176,7 @@ export default function ThreeCharacterStudio({
 
     updateCameraTarget();
 
-    // ── 5. INTERACTION (FitCraft Smooth Orbit & Pinch/Scroll Zoom) ─────
+    // ── 5. INTERACTION (FitCraft Orbit & Zoom) ────────────────────────
     let time = 0;
     let reqId = null;
     let isDragging = false;
@@ -204,7 +196,6 @@ export default function ThreeCharacterStudio({
     };
     const onMouseUp = () => { isDragging = false; };
 
-    // Scroll to Zoom
     const onWheel = (e) => {
       e.preventDefault();
       setZoomLevel((prev) => Math.min(4.5, Math.max(1.8, prev + e.deltaY * 0.003)));
@@ -215,13 +206,13 @@ export default function ThreeCharacterStudio({
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
-    // Human-grade Sinusoidal Cadence Curve
+    // Human-grade Sinusoidal Cadence Curve (2s Eccentric, 0.5s Pause Depth, 1.5s Concentric Lockout)
     const humanCadence = (x) => {
       const s = 0.5 - 0.5 * Math.cos(Math.PI * x);
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. SKELETAL MOVEMENT LOOP ─────────────────────────────────────
+    // ── 6. REAL SKINNED HUMANOID SKELETAL KINEMATICS LOOP ─────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -231,71 +222,96 @@ export default function ThreeCharacterStudio({
 
       camera.position.lerp(targetCamPosRef.current, 0.08);
       camera.lookAt(targetLookAtRef.current);
-      modelGroup.rotation.y = manualRotY;
+      modelRoot.rotation.y = manualRotY;
 
       const rawCycle = (Math.sin(time) + 1) / 2;
       const k = humanCadence(rawCycle);
 
       if (isRigReady) {
-        const hips = bones['mixamorigHips'] || bones['Hips'];
-        const spine = bones['mixamorigSpine'] || bones['Spine'];
-        const spine1 = bones['mixamorigSpine1'] || bones['Spine1'];
-        const leftArm = bones['mixamorigLeftArm'] || bones['LeftArm'];
-        const rightArm = bones['mixamorigRightArm'] || bones['RightArm'];
-        const leftForeArm = bones['mixamorigLeftForeArm'] || bones['LeftForeArm'];
-        const rightForeArm = bones['mixamorigRightForeArm'] || bones['RightForeArm'];
-        const leftUpLeg = bones['mixamorigLeftUpLeg'] || bones['LeftUpLeg'];
-        const rightUpLeg = bones['mixamorigRightUpLeg'] || bones['RightUpLeg'];
-        const leftLeg = bones['mixamorigLeftLeg'] || bones['LeftLeg'];
-        const rightLeg = bones['mixamorigRightLeg'] || bones['RightLeg'];
-        const head = bones['mixamorigHead'] || bones['Head'];
+        // Find Bones by normalized key
+        const hips = b['hips'];
+        const spine = b['spine'];
+        const spine1 = b['spine1'];
+        const spine2 = b['spine2'];
+        const leftArm = b['leftarm'];
+        const rightArm = b['rightarm'];
+        const leftForeArm = b['leftforearm'];
+        const rightForeArm = b['rightforearm'];
+        const leftHand = b['lefthand'];
+        const rightHand = b['righthand'];
+        const leftUpLeg = b['leftupleg'];
+        const rightUpLeg = b['rightupleg'];
+        const leftLeg = b['leftleg'];
+        const rightLeg = b['rightleg'];
+        const leftFoot = b['leftfoot'];
+        const rightFoot = b['rightfoot'];
+        const head = b['head'];
 
         if (exercise === 'pushup') {
-          modelGroup.position.set(0, -0.45 + (1 - k) * 0.28, 0);
-          modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
+          // ── REAL HUMANOID PUSH-UP ──
+          // Body rotates horizontally into plank, lowers smoothly with chest touching floor
+          modelRoot.position.set(0, -0.42 + (1 - k) * 0.28, 0);
+          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           if (hips) hips.rotation.set(0, 0, 0);
           if (spine) spine.rotation.set(0, 0, 0);
           if (head) head.rotation.x = THREE.MathUtils.degToRad(-15);
 
-          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 45), 0, THREE.MathUtils.degToRad(25 + k * 30));
-          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 45), 0, THREE.MathUtils.degToRad(-25 - k * 30));
-          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 85);
-          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 85);
-        } else if (exercise === 'squat') {
-          modelGroup.position.set(0, -0.55 - k * 0.35, 0);
-          modelGroup.rotation.x = 0;
+          // Arms bend at elbows back in 45° arrow angle, forearms flex to 90°
+          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(25 + k * 30));
+          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(-25 - k * 30));
+          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
+          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
 
-          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 24);
+          // Feet stay planted
+          if (leftFoot) leftFoot.rotation.x = THREE.MathUtils.degToRad(75);
+          if (rightFoot) rightFoot.rotation.x = THREE.MathUtils.degToRad(75);
+        } else if (exercise === 'squat') {
+          // ── REAL HUMANOID AIR SQUAT ──
+          // Hips sink down, hinge back, thighs reach parallel with floor
+          modelRoot.position.set(0, -0.55 - k * 0.38, 0);
+          modelRoot.rotation.x = 0;
+
+          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 26);
+          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 10);
           if (head) head.rotation.x = THREE.MathUtils.degToRad(-k * 18);
 
-          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(k * 105);
-          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(k * 105);
+          // Thighs flex up to -90° (parallel with floor), knees bend to 105°
+          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 90);
+          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 90);
+          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(k * 108);
+          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(k * 108);
 
-          if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 80);
-          if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 80);
+          // Arms raise forward horizontally for balance
+          if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
+          if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
+          if (leftForeArm) leftForeArm.rotation.x = 0;
+          if (rightForeArm) rightForeArm.rotation.x = 0;
         } else if (exercise === 'situp') {
-          modelGroup.position.set(0, -0.55, 0);
-          modelGroup.rotation.x = THREE.MathUtils.degToRad(-82);
+          // ── REAL HUMANOID SIT-UP ──
+          modelRoot.position.set(0, -0.55, 0);
+          modelRoot.rotation.x = THREE.MathUtils.degToRad(-82);
 
-          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 68);
-          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 20);
-          if (head) head.rotation.x = THREE.MathUtils.degToRad(k * 22);
+          // Segmental spinal curling from supine to 70° upright crunch
+          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
+          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 22);
+          if (head) head.rotation.x = THREE.MathUtils.degToRad(k * 24);
 
+          // Knees bent at 60°
           if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(55);
           if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(55);
           if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(-65);
           if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(-65);
 
+          // Hands at temples
           if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(110), 0, THREE.MathUtils.degToRad(35));
           if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(110), 0, THREE.MathUtils.degToRad(-35));
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(55);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
-          modelGroup.position.set(0, -0.45, 0);
-          modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
+          // ── REAL HUMANOID PLANK HOLD ──
+          modelRoot.position.set(0, -0.42, 0);
+          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           const breathing = Math.sin(time * 6) * 0.006;
           if (spine) spine.position.y = breathing;
