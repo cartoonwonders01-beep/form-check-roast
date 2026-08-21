@@ -59,7 +59,7 @@ export default function ThreeCharacterStudio({
   const [zoomLevel, setZoomLevel] = useState(3.0);
 
   const targetCamPosRef = useRef(new THREE.Vector3(2.0, 0.6, 2.0));
-  const targetLookAtRef = useRef(new THREE.Vector3(0, -0.2, 0));
+  const targetLookAtRef = useRef(new THREE.Vector3(0, -0.15, 0));
 
   const currentConfig = EXERCISE_CONFIG[exercise] || EXERCISE_CONFIG.squat;
   const effectiveAngle = selectedAngle === 'auto' 
@@ -141,7 +141,6 @@ export default function ThreeCharacterStudio({
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(0.68, 0.68, 0.68);
-        // Correct root orientation so model is right-side up
         model.rotation.z = Math.PI;
         model.position.set(0, 0, 0);
 
@@ -173,20 +172,20 @@ export default function ThreeCharacterStudio({
       switch (effectiveAngle) {
         case 'side':
           targetCamPosRef.current.set(2.6 * z, 0.4, 0.0);
-          targetLookAtRef.current.set(0, -0.2, 0);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'front':
           targetCamPosRef.current.set(0, 0.45, 2.6 * z);
-          targetLookAtRef.current.set(0, -0.2, 0);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'top':
           targetCamPosRef.current.set(1.5 * z, 2.4 * z, 1.5 * z);
-          targetLookAtRef.current.set(0, -0.2, 0);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'iso':
         default:
           targetCamPosRef.current.set(2.0 * z, 0.65, 2.0 * z);
-          targetLookAtRef.current.set(0, -0.2, 0);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
       }
     };
@@ -228,7 +227,7 @@ export default function ThreeCharacterStudio({
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. SKELETAL MOVEMENT LOOP ─────────────────────────────────────
+    // ── 6. SKELETAL MOVEMENT LOOP (Natural Standing Posture) ──────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -260,21 +259,23 @@ export default function ThreeCharacterStudio({
         const head = b['head'];
 
         if (exercise === 'squat') {
-          // Standing Squat: Head at top, feet on floor
-          modelRoot.position.set(0, -0.48 - k * 0.30, 0);
+          // Standing Squat: Standing erect at k=0, sinking to parallel at k=1
+          modelRoot.position.set(0, -0.48 - k * 0.28, 0);
           modelRoot.rotation.set(0, 0, 0);
 
-          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(-k * 22);
+          if (hips) hips.position.set(0, 0, 0);
+          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(-k * 20);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(-k * 8);
-          if (head) head.rotation.x = THREE.MathUtils.degToRad(k * 14);
+          if (head) head.rotation.x = THREE.MathUtils.degToRad(k * 12);
 
-          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(k * 105);
-          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(k * 105);
+          // Full extended legs in rest pose, bending into squat
+          if (leftUpLeg) leftUpLeg.rotation.set(THREE.MathUtils.degToRad(-k * 80), 0, 0);
+          if (rightUpLeg) rightUpLeg.rotation.set(THREE.MathUtils.degToRad(-k * 80), 0, 0);
+          if (leftLeg) leftLeg.rotation.set(THREE.MathUtils.degToRad(k * 95), 0, 0);
+          if (rightLeg) rightLeg.rotation.set(THREE.MathUtils.degToRad(k * 95), 0, 0);
 
-          if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 75);
-          if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 75);
+          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(k * 70), 0, THREE.MathUtils.degToRad(15));
+          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(k * 70), 0, THREE.MathUtils.degToRad(-15));
         } else if (exercise === 'pushup') {
           modelRoot.position.set(0, -0.42 + (1 - k) * 0.22, 0);
           modelRoot.rotation.set(THREE.MathUtils.degToRad(85), 0, 0);
