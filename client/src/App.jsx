@@ -50,7 +50,7 @@ const PERSONA_ROASTS = {
 export default function App() {
   const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | '3d_mocap' | 'real_athlete'
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
-  const [character, setCharacter] = useState('humanoid');
+  const [character, setCharacter] = useState('duck');
   const [isActive, setIsActive] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isRest, setIsRest] = useState(false);
