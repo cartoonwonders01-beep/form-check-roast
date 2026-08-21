@@ -26,31 +26,59 @@ const VIEW_MODES = [
 
 const PERSONA_ROASTS = {
   humanoid: [
-    "Come on champion! You're dropping like a sack of unflavored protein powder! Tighten that core!",
-    "Are we doing pushups or taking a tactical gym floor nap? Chest down to 90 degrees!",
-    "Your form is looking solid, but let's see those triceps work on the lockout!"
+    "Bro! Your form is so creative, I thought you were auditioning for an interpretive modern dance troupe! Lock that spine!",
+    "Are we doing pushups or taking a tactical 30-second power nap on the turf? Chest down to 90 degrees!",
+    "You're dropping down like my crypto portfolio in a bear market! Control the negative descent!",
+    "I’d tell you to fix your elbow flare, but I’m worried you're about to achieve aerodynamic liftoff and hit the gym ceiling!",
+    "That wasn't full range of motion, that was a polite nod in the general direction of the gym floor!",
+    "Did you leave your abdominal core in your gym locker? Because your lower back is doing the limbo!",
+    "If your pushup depth was a swimming pool, you wouldn't even get your ankles wet. 90 degrees, let's go!",
+    "Come on champion! My protein shaker has more structural mechanical stability during a workout!",
+    "You're treating the bottom lockout like hot lava! Hover 1 inch above the deck and own the pause!",
+    "That set had less tension than a Sunday morning meditation class. Squeeze the pecs!"
   ],
   duck: [
-    "QUACK! Your elbows are flapping like a goose in a wind turbine! Lock those wings at 45 degrees!",
-    "I've seen bread with better structural integrity than your lower back right now. Quack up!",
-    "Not bad for a human with zero feathers, but your tail is sagging. Squeeze the glutes!"
+    "QUACK! Are you doing pushups or aggressively apologizing to the gym floor?",
+    "I've seen soggy bread with more structural core integrity than your lower spine right now!",
+    "Your elbows are flaring out like a goose caught in a helicopter rotor! 45 degrees, you turkey!",
+    "You're dropping down like an anvil dropped from an airplane. Where is the controlled 2-second tempo?!",
+    "If half-reps burned calories, you'd be shredded! Full chest to the floor or walk the plank!",
+    "I have no teeth and two hollow wing bones, and I can still hold a stiffer plank than that!",
+    "Your hips are dipping so low you're about to strike oil on the gym floor! Squeeze the glutes!",
+    "Quack quack! That rep was so questionable, even the judges at the local pond would give it a zero!",
+    "Stop head-bobbing like a pigeon listening to techno! Your neck is not part of the tricep group!",
+    "I didn't fly 3,000 miles south for winter just to watch you do worm pushups. Lock it in!"
   ],
   lego: [
-    "WARNING: Severe brick misalignment detected! Your spine is scattering loose pieces across the floor!",
-    "Snap those core pieces together! If you bend at the waist, your minifig torso pops off!",
-    "Solid brick structure! That's master builder pushup tension right there!"
+    "WARNING: Critical brick failure! Your hip connector piece just snapped completely off!",
+    "If your core sags any further, you're going to scatter 400 loose Lego pieces across the carpet!",
+    "Are you built out of Mega Bloks? Because authentic Lego bricks do NOT wobble like that!",
+    "Keep that spine at a rigid 180° plastic stud alignment! No loose joints in the master builder gym!",
+    "You're bending at the waist like a cheap knockoff action figure! Lock the hinge!",
+    "That rep had more gaps than a Lego instruction booklet missing page 4! Build a real foundation!",
+    "Stepping barefoot on a Lego hurts less than watching that attempt at a full-range pushup!",
+    "Your arms folded like a flimsy folding chair made of 1x2 plates! Reinforce the base!",
+    "Zero studs awarded for that set! Disassemble, rebuild your posture, and try again!",
+    "I'm calling the Master Builders — your pushup form is an architectural disaster zone!"
   ],
   vader: [
-    "I find your lack of core tension... disturbing. The dark side does not tolerate sagging hips!",
-    "You were supposed to bring balance to the workout, not collapse on the floor!",
-    "Good... the pushup force is strong with this set. Continue the descent!"
+    "I find your lack of core tension... disturbing. The Emperor does not accept half-reps!",
+    "You were supposed to destroy the weakness, not collapse upon the floor!",
+    "Your lower back is sagging faster than the Galactic Republic. Tighten your core!",
+    "Are you pushing the planet down, or is gravity force-choking you into submission?",
+    "I have altered your rep target. Pray I do not alter it any further!",
+    "Your pushup technique is as fragile as the thermal exhaust port on the Death Star!",
+    "Do or do not... there is no worming your way off the training mat!",
+    "Your arms are trembling like a young Padawan facing a Sith Lord. Lock those triceps!",
+    "Your form is so chaotic, even the Dark Side rejects your pushup trajectory!",
+    "That was not a pushup. That was an aggressive attempt to make out with the imperial hangar deck."
   ]
 };
 
 export default function App() {
   const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | '3d_mocap' | 'real_athlete'
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
-  const [character, setCharacter] = useState('duck');
+  const [character, setCharacter] = useState('vader');
   const [isActive, setIsActive] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [isRest, setIsRest] = useState(false);

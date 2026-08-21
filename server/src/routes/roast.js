@@ -5,92 +5,59 @@ const router = express.Router();
 const GEMINI_MODEL = 'gemini-3.6-flash';
 
 const UNIVERSE_PERSONAS = {
-  // ── SEVEN HUMANOID & COMICAL UNIVERSES ──
-  humanoid: 'Coach Alex, an elite Seven-app personal trainer who gives witty, brutally honest, high-energy biomechanical roasts and sharp movement cues',
-  lego_brick: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
-  lego: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, and plastic durability references',
-  woody: 'Sheriff Woody from Toy Story, the vintage pull-string cowboy doll, giving folksy cowboy analogies ("There\'s a snake in your spine!", "Reach for the sky!", "You are a child\'s plaything doing half-reps")',
-  lego_batman: 'Lego Batman, the brooding Dark Knight who works only in black, gravelly-voiced, brutally critiquing calisthenics form with superhero arrogance',
-
-  // ── STAR WARS UNIVERSE ──
-  vader: 'Darth Vader, Supreme Commander of the Imperial Fleet, holding a red lightsaber, speaking with mechanical breathing pauses, viewing bad pushup form as weakness and treason against the Empire',
-  yoda: 'Grand Master Yoda, ancient 900-year-old Jedi Master speaking in inverted syntax ("Sagging your hips are, fall to the Dark Side you will"), preaching deep range of motion and the Living Force',
-  stormtrooper: 'TK-421, a clumsy Imperial Stormtrooper who misses every shot and every target depth angle, giving sarcastic tactical advice',
-
-  // ── ANIMAL KINGDOM ──
-  duck: 'Coach Quack, a sassy sarcastic duck who wears a tiny sweatband and quacks in fury when elbows flare or hips sag',
+  humanoid: 'Coach Alex, an elite Seven-app personal trainer and fitness influencer who gives witty, brutally honest, high-energy roasts with protein shake and crypto analogies',
+  lego: 'Brick Strong, a Lego minifigure bodybuilding coach who speaks entirely in Lego brick metaphors, snap-together jokes, loose stud warnings, and plastic durability puns',
+  vader: 'Darth Vader, Supreme Commander of the Imperial Fleet, viewing bad pushup form as weakness, treason against the Emperor, and lack of dark side core discipline',
+  duck: 'Quack Norris, a sassy sarcastic cartoon duck who wears a red karate headband and quacks in fury when elbows flare or hips sag like wet bread',
+  woody: 'Sheriff Woody, the vintage pull-string cowboy doll, giving folksy cowboy analogies ("There\'s a snake in your spine!", "Reach for the sky!")',
   bear: 'Grizzly Bruno, a 900lb grizzly powerlifter who only respects deep range of motion and crushing heavy bodyweight reps'
 };
 
 const EXERCISE_CONTEXTS = {
-  pushup: 'push-up attempt (e.g. sagging lower back, flared elbows, half-depth nodding)',
+  pushup: 'push-up attempt (e.g. sagging lower back, flared elbows, half-depth nodding, flopping like a fish)',
   pullup: 'pull-up attempt (e.g. kipping legs, disengaged scapula, chin failing to clear the bar)',
   squat: 'squat attempt (e.g. shallow quarter-depth, knees caving inward, forward chest collapse)',
-  dips: 'parallel bar dip attempt (e.g. forward shoulder dump, elbows flaring, half reps)'
+  situp: 'sit-up attempt (e.g. neck yanking, hip thrusting, zero abdominal contraction)',
+  plank: 'plank attempt (e.g. drooping hips, arched lumbar spine, trembling shoulders)'
 };
 
-const FALLBACK_ROASTS = {
-  humanoid: {
-    roast: "That push-up had more spinal sag than a tired hammock. Your chest barely greeted the floor while your lower back waved white flags.",
-    correction: "Engage your abdominal wall, squeeze your glutes, and tuck elbows to a 45-degree arrow trajectory.",
-    severity: "savage",
-    issue: "Lumbar Hyperextension"
-  },
-  lego: {
-    roast: "Your spine has less clutch power than a knock-off Mega Bloks tower on a shag rug. One more rep and you're gonna scatter into 40 loose plastic pieces.",
-    correction: "Snap your core and glutes together like two 2x4 locking bricks to maintain a rigid horizontal plate.",
-    severity: "savage",
-    issue: "Zero Brick Clutch Power"
-  },
-  woody: {
-    roast: "Hold on now, partner! There's a snake in your spine! You're floppin' around that floor like Andy just walked into the room!",
-    correction: "Squeeze that core tight and keep your back straight as a sheriff's badge.",
-    severity: "savage",
-    issue: "Floppy Pull-String Spine"
-  },
-  lego_batman: {
-    roast: "I only work in black, darkness... and actual full-range push-ups. Your form is weaker than the Joker's punchlines.",
-    correction: "Tuck your elbows to 45 degrees like bat-wings before descending to the cave floor.",
-    severity: "savage",
-    issue: "Flared Bat-Wings"
-  },
-  vader: {
-    roast: "I find your lack of core tension disturbing. You are not executing a pushup; your hips are simply surrendering to gravity like the Rebel Alliance.",
-    correction: "Channel the Force through your abdominal wall and keep your spine aligned with my lightsaber.",
-    severity: "savage",
-    issue: "Sith Spine Collapse"
-  },
-  yoda: {
-    roast: "Sagging your hips are. More like a swamp slug than a Jedi Knight you look. Do or do not — a half-rep there is not.",
-    correction: "Engage the core you must, until straight as a kyber crystal your back becomes.",
-    severity: "savage",
-    issue: "Swamp Slug Alignment"
-  },
-  stormtrooper: {
-    roast: "Even I don't miss targets as badly as you missed that 90-degree elbow depth. Lord Vader would choke you for that set.",
-    correction: "Lower your chest all the way to target level before pressing back up.",
-    severity: "medium",
-    issue: "Missed Target Depth"
-  },
-  duck: {
-    roast: "*QUACK!* Was that a push-up or are you trying to do the worm on my gym floor? My tiny sweatband is soaked in pure disgust.",
-    correction: "Brace your core and squeeze your glutes into a rigid horizontal plank.",
-    severity: "savage",
-    issue: "Worm Sagging"
-  },
-  bear: {
-    roast: "If I wanted to watch a dying salmon flop on a riverbank, I'd go fishing. That wasn't a rep; that was a full-body cry for help.",
-    correction: "Lock your shoulder blades down and back to eliminate uncontrolled momentum.",
-    severity: "savage",
-    issue: "Kipping & Disengaged Scapula"
-  }
+const RICH_FALLBACK_ROASTS = {
+  humanoid: [
+    { roast: "Bro! Your form is so creative, I thought you were auditioning for an interpretive modern dance troupe! Lock that spine!", correction: "Engage your abdominal wall and keep elbows at 45 degrees.", severity: "savage", issue: "Spinal Interpretive Dance" },
+    { roast: "Are we doing pushups or taking a tactical 30-second power nap on the turf? Chest down to 90 degrees!", correction: "Lower until chest hovers 1 inch above the floor.", severity: "medium", issue: "Tactical Floor Nap" },
+    { roast: "You're dropping down like my crypto portfolio in a bear market! Control the negative descent!", correction: "Use a strict 2-second eccentric tempo.", severity: "savage", issue: "Uncontrolled Descent" },
+    { roast: "I’d tell you to fix your elbow flare, but I’m worried you're about to achieve aerodynamic liftoff and hit the gym ceiling!", correction: "Tuck elbows into an arrow shape, not a T-shape.", severity: "savage", issue: "Helicopter Elbow Flare" },
+    { roast: "That wasn't full range of motion, that was a polite nod in the general direction of the gym floor!", correction: "Reach a full 90-degree elbow flexion at the bottom.", severity: "medium", issue: "Polite Head Nodding" },
+    { roast: "Did you leave your abdominal core in your gym locker? Because your lower back is doing the limbo!", correction: "Squeeze glutes and tuck pelvis to eliminate lower back sag.", severity: "savage", issue: "Limbo Lower Back" }
+  ],
+  duck: [
+    { roast: "QUACK! Are you doing pushups or aggressively apologizing to the gym floor?", correction: "Maintain a rigid horizontal plank and drive from the triceps.", severity: "savage", issue: "Floor Apologies" },
+    { roast: "I've seen soggy bread with more structural core integrity than your lower spine right now!", correction: "Squeeze the glutes and lock the abdominal wall tight.", severity: "savage", issue: "Soggy Bread Spine" },
+    { roast: "Your elbows are flaring out like a goose caught in a helicopter rotor! 45 degrees, you turkey!", correction: "Tuck your wings to a 45-degree angle alongside your ribs.", severity: "savage", issue: "Flapping Goose Wings" },
+    { roast: "You're dropping down like an anvil dropped from an airplane. Where is the controlled 2-second tempo?!", correction: "Control your descent over 2 seconds before pausing.", severity: "medium", issue: "Anvil Gravity Drop" },
+    { roast: "I have no teeth and two hollow wing bones, and I can still hold a stiffer plank than that!", correction: "Keep your hips level with your shoulders throughout the rep.", severity: "savage", issue: "Hollow Plank" }
+  ],
+  lego: [
+    { roast: "WARNING: Critical brick failure! Your hip connector piece just snapped completely off!", correction: "Snap your core and glutes together like two 2x4 locking bricks.", severity: "savage", issue: "Loose Brick Connector" },
+    { roast: "If your core sags any further, you're going to scatter 400 loose Lego pieces across the carpet!", correction: "Lock your torso into a single rigid baseplate.", severity: "savage", issue: "Catastrophic Scatter" },
+    { roast: "Are you built out of Mega Bloks? Because authentic Lego bricks do NOT wobble like that!", correction: "Maintain isometric tension from neck to ankles.", severity: "savage", issue: "Off-Brand Wobble" },
+    { roast: "That rep had more gaps than a Lego instruction booklet missing page 4! Build a real foundation!", correction: "Complete the full range of motion from lockout to floor.", severity: "medium", issue: "Missing Instructions" },
+    { roast: "Stepping barefoot on a Lego hurts less than watching that attempt at a full-range pushup!", correction: "Lower your chest to full depth before pressing.", severity: "savage", issue: "Barefoot Lego Pain" }
+  ],
+  vader: [
+    { roast: "I find your lack of core tension... disturbing. The Emperor does not accept half-reps!", correction: "Channel the Force into your abdominal wall and lock your spine straight.", severity: "savage", issue: "Disturbing Core Tension" },
+    { roast: "You were supposed to destroy the weakness, not collapse upon the imperial hangar floor!", correction: "Maintain active shoulder engagement at the top of every rep.", severity: "savage", issue: "Hangar Deck Collapse" },
+    { roast: "Your lower back is sagging faster than the Galactic Republic. Tighten your core!", correction: "Tuck your pelvis and engage your glutes.", severity: "savage", issue: "Galactic Republic Sag" },
+    { roast: "Are you pushing the planet down, or is gravity force-choking you into submission?", correction: "Drive powerfully through the palms to full lockout.", severity: "medium", issue: "Force-Choked Gravity" },
+    { roast: "Your pushup technique is as fragile as the thermal exhaust port on the Death Star!", correction: "Eliminate shoulder shrug and stabilize the scapulae.", severity: "savage", issue: "Exhaust Port Vulnerability" }
+  ]
 };
 
 router.post('/', async (req, res) => {
   try {
-    const { exercise = 'pushup', character = 'lego_brick', videoUrl = '', poseTelemetry } = req.body;
+    const { exercise = 'pushup', character = 'humanoid', videoUrl = '', poseTelemetry } = req.body;
 
-    const persona = UNIVERSE_PERSONAS[character] || UNIVERSE_PERSONAS.lego_brick;
+    const persona = UNIVERSE_PERSONAS[character] || UNIVERSE_PERSONAS.humanoid;
     const exerciseContext = EXERCISE_CONTEXTS[exercise] || EXERCISE_CONTEXTS.pushup;
 
     const telemetryDetails = poseTelemetry ? `
@@ -101,7 +68,8 @@ Pose Telemetry from Computer Vision:
 ` : '';
 
     const systemPrompt = `You are ${persona}. 
-Your mission is to deliver a savage, hilarious, universe-authentic roast and a precise biomechanical correction for the user's ${exerciseContext}.
+Your mission is to deliver a savage, laugh-out-loud, universe-authentic roast and a precise biomechanical correction for the user's ${exerciseContext}.
+Use creative punchlines, comedic metaphors, and memorable pop-culture or character quirks. Make it genuinely hilarious.
 ${telemetryDetails}
 
 You must respond with ONLY a valid JSON object (no markdown, no code block fences, no conversational preamble) with these exact keys:
@@ -112,7 +80,7 @@ You must respond with ONLY a valid JSON object (no markdown, no code block fence
   "issue": "short 2-4 word summary of the defect"
 }`;
 
-    const userPrompt = `Roast this ${exercise} attempt as your character!`;
+    const userPrompt = `Roast this ${exercise} attempt as your character! Give me a brand new, wildly creative punchline!`;
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
     
@@ -128,7 +96,7 @@ You must respond with ONLY a valid JSON object (no markdown, no code block fence
           }
         ],
         generationConfig: {
-          temperature: 0.9,
+          temperature: 0.95,
           maxOutputTokens: 2048,
           responseMimeType: 'application/json'
         }
@@ -140,23 +108,45 @@ You must respond with ONLY a valid JSON object (no markdown, no code block fence
       throw new Error(`Gemini HTTP ${response.status}: ${errText}`);
     }
 
-    const resJson = await response.json();
-    let responseText = resJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (!responseText) throw new Error('Empty response from Gemini');
+    const data = await response.json();
+    const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    responseText = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-    const data = JSON.parse(responseText);
+    if (!rawContent) {
+      throw new Error('Empty response from Gemini API');
+    }
 
-    res.json({ success: true, data });
-  } catch (err) {
-    console.error('Roast API error:', err.message);
-    const charKey = req.body.character || 'lego_brick';
-    const fallback = FALLBACK_ROASTS[charKey] || FALLBACK_ROASTS.lego_brick;
-    res.json({
+    let parsedRoast;
+    try {
+      const cleaned = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedRoast = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.warn('JSON parse error from Gemini output, using raw text:', rawContent);
+      parsedRoast = {
+        roast: rawContent.slice(0, 140),
+        correction: "Maintain core tension and control the full range of motion.",
+        severity: "savage",
+        issue: "Form Breakdown"
+      };
+    }
+
+    return res.json({
+      success: true,
+      data: parsedRoast,
+      source: 'gemini-3.6-flash'
+    });
+
+  } catch (error) {
+    console.error('Roast API Error (Falling back to universe response):', error.message);
+    
+    // Pick a random funny fallback roast from our rich pool
+    const list = RICH_FALLBACK_ROASTS[req.body.character] || RICH_FALLBACK_ROASTS.humanoid;
+    const fallback = list[Math.floor(Math.random() * list.length)];
+
+    return res.json({
       success: true,
       data: fallback,
-      demo: true,
-      warning: 'Fallback activated: ' + err.message,
+      source: 'universe-fallback',
+      note: 'Using offline comedic personality fallback'
     });
   }
 });
