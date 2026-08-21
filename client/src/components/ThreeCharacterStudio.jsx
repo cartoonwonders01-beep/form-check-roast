@@ -1,21 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Eye, Flame, Volume2, Sparkles, RefreshCw } from 'lucide-react';
+import { Eye, Flame, Volume2, Sparkles, ZoomIn, ZoomOut, RotateCcw, Activity } from 'lucide-react';
 
-const EXERCISE_OPTIMAL_ANGLES = {
-  pushup: 'side',
-  squat: 'iso',
-  situp: 'side',
-  plank: 'side',
+const EXERCISE_CONFIG = {
+  pushup: {
+    primaryMuscles: ['Pectorals (Chest)', 'Triceps Brachii'],
+    secondaryMuscles: ['Anterior Deltoids', 'Core / Rectus Abdominis'],
+    optimalAngle: 'side',
+    targetDepth: '90° Elbow Flexion',
+    tempo: '2s Down • 1s Pause • 1s Up',
+    glowColor: 0xf97316 // Fiery Orange
+  },
+  squat: {
+    primaryMuscles: ['Quadriceps', 'Gluteus Maximus'],
+    secondaryMuscles: ['Hamstrings', 'Core Stabilizers'],
+    optimalAngle: 'iso',
+    targetDepth: 'Femur Parallel to Floor',
+    tempo: '3s Down • 1s Pause • 2s Up',
+    glowColor: 0x06b6d4 // Cyan
+  },
+  situp: {
+    primaryMuscles: ['Rectus Abdominis (Core)'],
+    secondaryMuscles: ['Hip Flexors', 'Obliques'],
+    optimalAngle: 'side',
+    targetDepth: '70° Upright Spinal Curl',
+    tempo: '2s Up • 2s Controlled Descent',
+    glowColor: 0x8b5cf6 // Violet
+  },
+  plank: {
+    primaryMuscles: ['Transverse Abdominis', 'Core Stabilizers'],
+    secondaryMuscles: ['Glutes', 'Deltoids', 'Quads'],
+    optimalAngle: 'side',
+    targetDepth: '180° Neutral Spinal Line',
+    tempo: 'Isometric Continuous Hold',
+    glowColor: 0x10b981 // Emerald
+  }
 };
 
 const CAMERA_PRESETS = [
-  { id: 'auto', label: 'Smart Angle', desc: 'Optimal for movement' },
-  { id: 'side', label: 'Side (90°)', desc: 'Spine & Depth' },
-  { id: 'iso', label: '3D Quarter (45°)', desc: 'Depth & Form' },
-  { id: 'front', label: 'Front (0°)', desc: 'Symmetry & Flare' },
-  { id: 'top', label: 'Overhead (3/4)', desc: 'Hand/Arm Track' },
+  { id: 'auto', label: 'Smart View' },
+  { id: 'side', label: 'Side (90°)' },
+  { id: 'iso', label: '3D Quarter' },
+  { id: 'front', label: 'Front (0°)' },
+  { id: 'top', label: 'Top (3/4)' },
 ];
 
 export default function ThreeCharacterStudio({ 
@@ -28,12 +56,15 @@ export default function ThreeCharacterStudio({
 }) {
   const containerRef = useRef(null);
   const [selectedAngle, setSelectedAngle] = useState('auto');
-  const [modelLoaded, setModelLoaded] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(3.2);
+  const [highlightMuscles, setHighlightMuscles] = useState(true);
+
   const targetCamPosRef = useRef(new THREE.Vector3(0, 1.1, 3.2));
   const targetLookAtRef = useRef(new THREE.Vector3(0, 0.15, 0));
 
+  const currentConfig = EXERCISE_CONFIG[exercise] || EXERCISE_CONFIG.pushup;
   const effectiveAngle = selectedAngle === 'auto' 
-    ? (EXERCISE_OPTIMAL_ANGLES[exercise] || 'side')
+    ? (currentConfig.optimalAngle || 'side')
     : selectedAngle;
 
   useEffect(() => {
@@ -46,7 +77,7 @@ export default function ThreeCharacterStudio({
     const height = container.clientHeight || 280;
 
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-    camera.position.set(0, 1.1, 3.2);
+    camera.position.set(0, 1.1, zoomLevel);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
@@ -58,17 +89,16 @@ export default function ThreeCharacterStudio({
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // ── 2. STUDIO 3-POINT LIGHTING ────────────────────────────────────
+    // ── 2. STUDIO 3-POINT LIGHTING (FitCraft Aesthetic) ──────────────
     const keyLight = new THREE.DirectionalLight(0xfff8f0, 2.5);
     keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
     keyLight.shadow.bias = -0.0005;
-    keyLight.shadow.radius = 2.5;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.6);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.8);
     rimLight.position.set(-3.5, 3.0, -3.0);
     scene.add(rimLight);
 
@@ -79,26 +109,21 @@ export default function ThreeCharacterStudio({
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
-    // Floor Shadow
-    const floorGeo = new THREE.CircleGeometry(1.6, 64);
-    const floorMat = new THREE.MeshStandardMaterial({ 
-      color: 0x000000, 
-      roughness: 0.8,
-      transparent: true,
-      opacity: 0.14
-    });
-    const floorPlane = new THREE.Mesh(floorGeo, floorMat);
-    floorPlane.rotation.x = -Math.PI / 2;
-    floorPlane.position.y = -0.58;
-    floorPlane.receiveShadow = true;
-    scene.add(floorPlane);
+    // Subtle FitCraft Floor Grid
+    const gridHelper = new THREE.GridHelper(3.0, 12, 0xf97316, 0x334155);
+    gridHelper.position.y = -0.58;
+    gridHelper.material.opacity = 0.2;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
 
-    // ── 3. LOAD REAL 3D RIGGED HUMANOID MODEL (GLTF / GLB) ───────────
+    // ── 3. LOAD RIGGED 3D MODEL WITH TARGET MUSCLE GLOW ───────────────
     const modelGroup = new THREE.Group();
     scene.add(modelGroup);
 
     let bones = {};
     let isRigReady = false;
+    let chestMesh = null;
+    let thighMeshes = [];
 
     const loader = new GLTFLoader();
     const modelUrl = character === 'woody' || character === 'vader' 
@@ -109,16 +134,15 @@ export default function ThreeCharacterStudio({
       modelUrl,
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.7, 0.7, 0.7);
+        model.scale.set(0.72, 0.72, 0.72);
         model.position.y = -0.55;
 
-        // Traverse and enable soft shadows & locate anatomical bones
         model.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
             child.receiveShadow = true;
             if (child.material) {
-              child.material.roughness = 0.5;
+              child.material.roughness = 0.45;
               child.material.metalness = 0.1;
             }
           }
@@ -129,32 +153,30 @@ export default function ThreeCharacterStudio({
 
         modelGroup.add(model);
         isRigReady = true;
-        setModelLoaded(true);
       },
       undefined,
-      (err) => {
-        console.warn('Local GLB load fallback:', err);
-      }
+      (err) => console.warn('GLB load fallback:', err)
     );
 
     // ── 4. CAMERA PRESETS POSITION CONFIG ─────────────────────────────
     const updateCameraTarget = () => {
+      const zoomFactor = zoomLevel / 3.2;
       switch (effectiveAngle) {
         case 'side':
-          targetCamPosRef.current.set(3.2, 0.6, 0.2);
+          targetCamPosRef.current.set(3.2 * zoomFactor, 0.6, 0.2);
           targetLookAtRef.current.set(0, -0.1, 0);
           break;
         case 'front':
-          targetCamPosRef.current.set(0, 0.7, 3.2);
+          targetCamPosRef.current.set(0, 0.7, 3.2 * zoomFactor);
           targetLookAtRef.current.set(0, 0.0, 0);
           break;
         case 'top':
-          targetCamPosRef.current.set(1.8, 2.6, 1.8);
+          targetCamPosRef.current.set(1.8 * zoomFactor, 2.6 * zoomFactor, 1.8 * zoomFactor);
           targetLookAtRef.current.set(0, -0.2, 0);
           break;
         case 'iso':
         default:
-          targetCamPosRef.current.set(2.4, 1.0, 2.4);
+          targetCamPosRef.current.set(2.4 * zoomFactor, 1.0, 2.4 * zoomFactor);
           targetLookAtRef.current.set(0, 0.0, 0);
           break;
       }
@@ -162,7 +184,7 @@ export default function ThreeCharacterStudio({
 
     updateCameraTarget();
 
-    // ── 5. INTERACTION & ORBIT ────────────────────────────────────────
+    // ── 5. INTERACTION (FitCraft Smooth Orbit & Pinch/Scroll Zoom) ─────
     let time = 0;
     let reqId = null;
     let isDragging = false;
@@ -182,17 +204,24 @@ export default function ThreeCharacterStudio({
     };
     const onMouseUp = () => { isDragging = false; };
 
+    // Scroll to Zoom
+    const onWheel = (e) => {
+      e.preventDefault();
+      setZoomLevel((prev) => Math.min(4.5, Math.max(1.8, prev + e.deltaY * 0.003)));
+    };
+
     container.addEventListener('mousedown', onMouseDown);
+    container.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
-    // Human-grade Sinusoidal Cadence Curve with Stretch Reflex & Pause
+    // Human-grade Sinusoidal Cadence Curve
     const humanCadence = (x) => {
       const s = 0.5 - 0.5 * Math.cos(Math.PI * x);
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. REAL SKELETAL SKELETON ANIMATION LOOP ───────────────────────
+    // ── 6. SKELETAL MOVEMENT LOOP ─────────────────────────────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -200,7 +229,7 @@ export default function ThreeCharacterStudio({
         time += 0.038;
       }
 
-      camera.position.lerp(targetCamPosRef.current, 0.07);
+      camera.position.lerp(targetCamPosRef.current, 0.08);
       camera.lookAt(targetLookAtRef.current);
       modelGroup.rotation.y = manualRotY;
 
@@ -208,11 +237,9 @@ export default function ThreeCharacterStudio({
       const k = humanCadence(rawCycle);
 
       if (isRigReady) {
-        // Access Mixamo Skeletal Bones
         const hips = bones['mixamorigHips'] || bones['Hips'];
         const spine = bones['mixamorigSpine'] || bones['Spine'];
         const spine1 = bones['mixamorigSpine1'] || bones['Spine1'];
-        const spine2 = bones['mixamorigSpine2'] || bones['Spine2'];
         const leftArm = bones['mixamorigLeftArm'] || bones['LeftArm'];
         const rightArm = bones['mixamorigRightArm'] || bones['RightArm'];
         const leftForeArm = bones['mixamorigLeftForeArm'] || bones['LeftForeArm'];
@@ -224,7 +251,6 @@ export default function ThreeCharacterStudio({
         const head = bones['mixamorigHead'] || bones['Head'];
 
         if (exercise === 'pushup') {
-          // ── PUSH-UP ──
           modelGroup.position.set(0, -0.45 + (1 - k) * 0.28, 0);
           modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
 
@@ -236,13 +262,7 @@ export default function ThreeCharacterStudio({
           if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 45), 0, THREE.MathUtils.degToRad(-25 - k * 30));
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 85);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 85);
-
-          if (leftUpLeg) leftUpLeg.rotation.set(0, 0, 0);
-          if (rightUpLeg) rightUpLeg.rotation.set(0, 0, 0);
-          if (leftLeg) leftLeg.rotation.set(0, 0, 0);
-          if (rightLeg) rightLeg.rotation.set(0, 0, 0);
         } else if (exercise === 'squat') {
-          // ── SQUAT ──
           modelGroup.position.set(0, -0.55 - k * 0.35, 0);
           modelGroup.rotation.x = 0;
 
@@ -256,10 +276,7 @@ export default function ThreeCharacterStudio({
 
           if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 80);
           if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 80);
-          if (leftForeArm) leftForeArm.rotation.x = 0;
-          if (rightForeArm) rightForeArm.rotation.x = 0;
         } else if (exercise === 'situp') {
-          // ── SIT-UP ──
           modelGroup.position.set(0, -0.55, 0);
           modelGroup.rotation.x = THREE.MathUtils.degToRad(-82);
 
@@ -277,7 +294,6 @@ export default function ThreeCharacterStudio({
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(55);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
-          // ── PLANK ──
           modelGroup.position.set(0, -0.45, 0);
           modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
 
@@ -299,11 +315,12 @@ export default function ThreeCharacterStudio({
     return () => {
       if (reqId) cancelAnimationFrame(reqId);
       container.removeEventListener('mousedown', onMouseDown);
+      container.removeEventListener('wheel', onWheel);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       renderer.dispose();
     };
-  }, [character, exercise, isPlaying, effectiveAngle]);
+  }, [character, exercise, isPlaying, effectiveAngle, zoomLevel]);
 
   const speakRoast = () => {
     if ('speechSynthesis' in window && roastData?.roast) {
@@ -316,23 +333,55 @@ export default function ThreeCharacterStudio({
   };
 
   return (
-    <div className="space-y-2.5 w-full">
-      {/* ── 3D Viewport Frame ── */}
+    <div className="space-y-3 w-full">
+      {/* ── 3D FitCraft Visualizer Viewport ── */}
       <div 
         ref={containerRef} 
-        className="relative w-full h-[270px] cursor-grab active:cursor-grabbing flex items-center justify-center bg-gradient-to-b from-slate-50/90 via-slate-100/70 to-slate-200/50 dark:from-zinc-900/90 dark:via-zinc-950 dark:to-black rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 overflow-hidden shadow-inner"
+        className="relative w-full h-[280px] cursor-grab active:cursor-grabbing flex items-center justify-center bg-gradient-to-b from-slate-900 via-[#0D1117] to-black rounded-3xl border border-white/10 overflow-hidden shadow-2xl"
       >
-        {/* Active Angle Badge */}
-        <div className="absolute top-2.5 right-3 pointer-events-none text-[9px] font-mono tracking-widest text-slate-500 dark:text-zinc-400 uppercase bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60 flex items-center gap-1.5 shadow-sm">
-          <Eye className="w-2.5 h-2.5 text-orange-500" />
-          <span>VIEW: {effectiveAngle.toUpperCase()}</span>
+        {/* Floating FitCraft HUD Controls */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none">
+          <div className="bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <span className="text-[10px] font-mono font-bold tracking-wider text-cyan-300 uppercase">
+              3D VISUALIZER • 60 FPS
+            </span>
+          </div>
+        </div>
+
+        {/* Zoom & Reset Controls */}
+        <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+          <button
+            onClick={() => setZoomLevel((prev) => Math.max(1.8, prev - 0.4))}
+            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setZoomLevel((prev) => Math.min(4.5, prev + 0.4))}
+            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              setZoomLevel(3.2);
+              setSelectedAngle('auto');
+            }}
+            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
+            title="Reset Camera"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Floating Quick Roast Button */}
         <button
           onClick={onTriggerRoast}
           disabled={isLoadingRoast}
-          className="absolute bottom-3 right-3 py-1.5 px-3 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[11px] font-bold shadow-lg shadow-orange-500/30 flex items-center gap-1.5 transition-all"
+          className="absolute bottom-3 right-3 py-1.5 px-3.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 active:scale-95 text-black text-xs font-black tracking-wide shadow-lg shadow-orange-500/30 flex items-center gap-1.5 transition-all z-10 uppercase"
         >
           <Flame className={`w-3.5 h-3.5 fill-current ${isLoadingRoast ? 'animate-spin' : ''}`} />
           <span>{isLoadingRoast ? 'Roasting...' : 'Roast Form'}</span>
@@ -352,12 +401,33 @@ export default function ThreeCharacterStudio({
                   ? 'bg-white dark:bg-zinc-900 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-200/50 dark:border-zinc-700/60'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white'
               }`}
-              title={preset.desc}
             >
               <span>{preset.label}</span>
             </button>
           );
         })}
+      </div>
+
+      {/* ── FitCraft Muscle Anatomy Card ── */}
+      <div className="bg-slate-50 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800 rounded-2xl p-3.5 space-y-2 shadow-sm">
+        <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-500 dark:text-zinc-400">
+          <span className="flex items-center gap-1">
+            <Activity className="w-3.5 h-3.5 text-cyan-500" />
+            TARGET BIOMECHANICS
+          </span>
+          <span className="text-orange-500 font-bold">{currentConfig.targetDepth}</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="bg-white dark:bg-zinc-800/60 p-2 rounded-xl border border-slate-100 dark:border-zinc-700/40">
+            <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-zinc-500 mb-0.5">Primary Muscles</div>
+            <div className="font-semibold text-slate-800 dark:text-zinc-200">{currentConfig.primaryMuscles.join(', ')}</div>
+          </div>
+          <div className="bg-white dark:bg-zinc-800/60 p-2 rounded-xl border border-slate-100 dark:border-zinc-700/40">
+            <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-zinc-500 mb-0.5">Recommended Cadence</div>
+            <div className="font-semibold text-slate-800 dark:text-zinc-200">{currentConfig.tempo}</div>
+          </div>
+        </div>
       </div>
 
       {/* ── Prominent Coach Roast Speech Bubble ── */}
