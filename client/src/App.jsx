@@ -7,7 +7,7 @@ import { sfx } from './utils/audioEffects';
 
 const WORKOUT_MOVES = [
   { id: 'pushup', title: 'Press-ups', subtitle: 'Chest & Core Plank', duration: 30 },
-  { id: 'squat', title: 'Air Squats', subtitle: 'Quads & Glutes', duration: 30 },
+  { id: 'squat', title: 'Squats', subtitle: 'Quads & Glutes Parallel', duration: 30 },
   { id: 'situp', title: 'Sit-ups', subtitle: 'Abdominal Crunch', duration: 30 },
   { id: 'plank', title: 'Plank Hold', subtitle: 'Isometric Stability', duration: 30 },
 ];

@@ -5,13 +5,15 @@ import { Eye, Flame, Volume2, Sparkles, ZoomIn, ZoomOut, RotateCcw, Activity } f
 
 const EXERCISE_CONFIG = {
   pushup: {
+    title: 'Press-ups',
     primaryMuscles: ['Pectorals (Chest)', 'Triceps Brachii'],
-    secondaryMuscles: ['Anterior Deltoids', 'Core Stabilizers'],
+    secondaryMuscles: ['Anterior Deltoids', 'Core / Abs'],
     optimalAngle: 'side',
     targetDepth: '90° Elbow Flexion',
     tempo: '2s Down • 1s Pause • 1s Up'
   },
   squat: {
+    title: 'Air Squats',
     primaryMuscles: ['Quadriceps', 'Gluteus Maximus'],
     secondaryMuscles: ['Hamstrings', 'Core Stabilizers'],
     optimalAngle: 'iso',
@@ -19,6 +21,7 @@ const EXERCISE_CONFIG = {
     tempo: '3s Down • 1s Pause • 2s Up'
   },
   situp: {
+    title: 'Sit-ups',
     primaryMuscles: ['Rectus Abdominis (Core)'],
     secondaryMuscles: ['Hip Flexors', 'Obliques'],
     optimalAngle: 'side',
@@ -26,6 +29,7 @@ const EXERCISE_CONFIG = {
     tempo: '2s Up • 2s Controlled Descent'
   },
   plank: {
+    title: 'Plank Hold',
     primaryMuscles: ['Transverse Abdominis', 'Core Stabilizers'],
     secondaryMuscles: ['Glutes', 'Deltoids', 'Quads'],
     optimalAngle: 'side',
@@ -35,11 +39,11 @@ const EXERCISE_CONFIG = {
 };
 
 const CAMERA_PRESETS = [
-  { id: 'auto', label: 'Smart View' },
+  { id: 'auto', label: 'Smart' },
   { id: 'side', label: 'Side (90°)' },
   { id: 'iso', label: '3D Quarter' },
-  { id: 'front', label: 'Front (0°)' },
-  { id: 'top', label: 'Top (3/4)' },
+  { id: 'front', label: 'Front' },
+  { id: 'top', label: 'Top' },
 ];
 
 export default function ThreeCharacterStudio({ 
@@ -52,10 +56,11 @@ export default function ThreeCharacterStudio({
 }) {
   const containerRef = useRef(null);
   const [selectedAngle, setSelectedAngle] = useState('auto');
-  const [zoomLevel, setZoomLevel] = useState(3.2);
+  const [zoomLevel, setZoomLevel] = useState(3.0);
+  const [loaded, setLoaded] = useState(false);
 
-  const targetCamPosRef = useRef(new THREE.Vector3(0, 1.1, 3.2));
-  const targetLookAtRef = useRef(new THREE.Vector3(0, 0.15, 0));
+  const targetCamPosRef = useRef(new THREE.Vector3(0, 1.0, 3.0));
+  const targetLookAtRef = useRef(new THREE.Vector3(0, 0.0, 0));
 
   const currentConfig = EXERCISE_CONFIG[exercise] || EXERCISE_CONFIG.pushup;
   const effectiveAngle = selectedAngle === 'auto' 
@@ -69,10 +74,10 @@ export default function ThreeCharacterStudio({
     // ── 1. WEBGL SETUP ────────────────────────────────────────────────
     const scene = new THREE.Scene();
     const width = container.clientWidth || 380;
-    const height = container.clientHeight || 280;
+    const height = container.clientHeight || 260;
 
-    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
-    camera.position.set(0, 1.1, zoomLevel);
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    camera.position.set(0, 1.0, 3.0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
@@ -80,12 +85,12 @@ export default function ThreeCharacterStudio({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.25;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // ── 2. STUDIO 3-POINT LIGHTING ────────────────────────────────────
-    const keyLight = new THREE.DirectionalLight(0xfff8f0, 3.0);
+    // ── 2. 3-POINT STUDIO LIGHTING ────────────────────────────────────
+    const keyLight = new THREE.DirectionalLight(0xfff8f0, 3.2);
     keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -93,44 +98,54 @@ export default function ThreeCharacterStudio({
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.0);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
     rimLight.position.set(-3.5, 3.0, -3.0);
     scene.add(rimLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+    const fillLight = new THREE.DirectionalLight(0xffeedd, 1.2);
     fillLight.position.set(-2.0, 1.0, 3.0);
     scene.add(fillLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
-    // Subtle FitCraft Floor Grid
-    const gridHelper = new THREE.GridHelper(3.0, 12, 0xf97316, 0x334155);
-    gridHelper.position.y = -0.58;
+    // Floor Shadow & Grid
+    const floorGeo = new THREE.CircleGeometry(1.6, 64);
+    const floorMat = new THREE.MeshStandardMaterial({ 
+      color: 0x000000, 
+      roughness: 0.8,
+      transparent: true,
+      opacity: 0.18
+    });
+    const floorPlane = new THREE.Mesh(floorGeo, floorMat);
+    floorPlane.rotation.x = -Math.PI / 2;
+    floorPlane.position.y = -0.55;
+    floorPlane.receiveShadow = true;
+    scene.add(floorPlane);
+
+    const gridHelper = new THREE.GridHelper(3.0, 12, 0xf97316, 0x475569);
+    gridHelper.position.y = -0.54;
     gridHelper.material.opacity = 0.25;
     gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    // ── 3. LOAD FULLY RIGGED 3D SOLDIER / ATHLETE MODEL ───────────────
-    const modelRoot = new THREE.Group();
-    scene.add(modelRoot);
+    // ── 3. LOAD RIGGED 3D HUMAN SKELETON MODEL ────────────────────────
+    const modelGroup = new THREE.Group();
+    scene.add(modelGroup);
 
     const b = {};
     let isRigReady = false;
 
     const loader = new GLTFLoader();
-    const modelPath = character === 'woody' || character === 'humanoid' 
-      ? '/models/Soldier.glb' 
-      : '/models/Xbot.glb';
+    const modelPath = character === 'woody' ? '/models/Soldier.glb' : '/models/Xbot.glb';
 
     loader.load(
       modelPath,
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.72, 0.72, 0.72);
-        model.position.y = -0.55;
+        model.scale.set(0.75, 0.75, 0.75);
+        model.position.set(0, 0, 0);
 
-        // Traverse all meshes and map bones by normalized key
         model.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
@@ -146,8 +161,9 @@ export default function ThreeCharacterStudio({
           }
         });
 
-        modelRoot.add(model);
+        modelGroup.add(model);
         isRigReady = true;
+        setLoaded(true);
       },
       undefined,
       (err) => console.warn('GLB load error:', err)
@@ -155,24 +171,24 @@ export default function ThreeCharacterStudio({
 
     // ── 4. CAMERA PRESETS POSITION CONFIG ─────────────────────────────
     const updateCameraTarget = () => {
-      const zoomFactor = zoomLevel / 3.2;
+      const z = zoomLevel / 3.0;
       switch (effectiveAngle) {
         case 'side':
-          targetCamPosRef.current.set(3.2 * zoomFactor, 0.6, 0.2);
-          targetLookAtRef.current.set(0, -0.1, 0);
+          targetCamPosRef.current.set(2.8 * z, 0.3, 0.0);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'front':
-          targetCamPosRef.current.set(0, 0.7, 3.2 * zoomFactor);
-          targetLookAtRef.current.set(0, 0.0, 0);
+          targetCamPosRef.current.set(0, 0.4, 2.8 * z);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'top':
-          targetCamPosRef.current.set(1.8 * zoomFactor, 2.6 * zoomFactor, 1.8 * zoomFactor);
+          targetCamPosRef.current.set(1.5 * z, 2.4 * z, 1.5 * z);
           targetLookAtRef.current.set(0, -0.2, 0);
           break;
         case 'iso':
         default:
-          targetCamPosRef.current.set(2.4 * zoomFactor, 1.0, 2.4 * zoomFactor);
-          targetLookAtRef.current.set(0, 0.0, 0);
+          targetCamPosRef.current.set(2.0 * z, 0.6, 2.0 * z);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
       }
     };
@@ -209,13 +225,12 @@ export default function ThreeCharacterStudio({
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
-    // Human-grade Sinusoidal Cadence Curve with Stretch Reflex & Pause
     const humanCadence = (x) => {
       const s = 0.5 - 0.5 * Math.cos(Math.PI * x);
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. REAL 3D RIGGED SKELETAL DEFORMATION LOOP ───────────────────
+    // ── 6. SKELETAL MOVEMENT LOOP ─────────────────────────────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -225,7 +240,7 @@ export default function ThreeCharacterStudio({
 
       camera.position.lerp(targetCamPosRef.current, 0.08);
       camera.lookAt(targetLookAtRef.current);
-      modelRoot.rotation.y = manualRotY;
+      modelGroup.rotation.y = manualRotY;
 
       const rawCycle = (Math.sin(time) + 1) / 2;
       const k = humanCadence(rawCycle);
@@ -248,8 +263,8 @@ export default function ThreeCharacterStudio({
 
         if (exercise === 'pushup') {
           // ── PUSH-UP ──
-          modelRoot.position.set(0, -0.42 + (1 - k) * 0.28, 0);
-          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
+          modelGroup.position.set(0, -0.22 + (1 - k) * 0.26, 0);
+          modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
 
           if (hips) hips.rotation.set(0, 0, 0);
           if (spine) spine.rotation.set(0, 0, 0);
@@ -264,8 +279,8 @@ export default function ThreeCharacterStudio({
           if (rightFoot) rightFoot.rotation.x = THREE.MathUtils.degToRad(75);
         } else if (exercise === 'squat') {
           // ── SQUAT ──
-          modelRoot.position.set(0, -0.55 - k * 0.38, 0);
-          modelRoot.rotation.x = 0;
+          modelGroup.position.set(0, -0.48 - k * 0.34, 0);
+          modelGroup.rotation.x = 0;
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 26);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 10);
@@ -280,8 +295,8 @@ export default function ThreeCharacterStudio({
           if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
         } else if (exercise === 'situp') {
           // ── SIT-UP ──
-          modelRoot.position.set(0, -0.55, 0);
-          modelRoot.rotation.x = THREE.MathUtils.degToRad(-82);
+          modelGroup.position.set(0, -0.32, 0);
+          modelGroup.rotation.x = THREE.MathUtils.degToRad(-82);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 22);
@@ -298,8 +313,8 @@ export default function ThreeCharacterStudio({
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
           // ── PLANK ──
-          modelRoot.position.set(0, -0.42, 0);
-          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
+          modelGroup.position.set(0, -0.22, 0);
+          modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
 
           const breathing = Math.sin(time * 6) * 0.006;
           if (spine) spine.position.y = breathing;
@@ -337,47 +352,47 @@ export default function ThreeCharacterStudio({
   };
 
   return (
-    <div className="space-y-3 w-full">
+    <div className="space-y-2.5 w-full">
       {/* ── 3D FitCraft Visualizer Viewport ── */}
       <div 
         ref={containerRef} 
-        className="relative w-full h-[280px] cursor-grab active:cursor-grabbing flex items-center justify-center bg-gradient-to-b from-slate-900 via-[#0D1117] to-black rounded-3xl border border-white/10 overflow-hidden shadow-2xl"
+        className="relative w-full h-[260px] cursor-grab active:cursor-grabbing flex items-center justify-center bg-gradient-to-b from-slate-900 via-[#0D1117] to-black rounded-3xl border border-white/10 overflow-hidden shadow-2xl"
       >
         {/* Floating FitCraft HUD Controls */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none">
-          <div className="bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5 shadow-sm">
+        <div className="absolute top-2.5 left-3 flex items-center gap-1.5 z-10 pointer-events-none">
+          <div className="bg-black/70 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10 flex items-center gap-1.5 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span className="text-[10px] font-mono font-bold tracking-wider text-cyan-300 uppercase">
+            <span className="text-[9px] font-mono font-bold tracking-wider text-cyan-300 uppercase">
               3D VISUALIZER • 60 FPS
             </span>
           </div>
         </div>
 
         {/* Zoom & Reset Controls */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
+        <div className="absolute top-2.5 right-3 flex items-center gap-1 z-10">
           <button
             onClick={() => setZoomLevel((prev) => Math.max(1.8, prev - 0.4))}
-            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
+            className="p-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
             title="Zoom In"
           >
-            <ZoomIn className="w-3.5 h-3.5" />
+            <ZoomIn className="w-3 h-3" />
           </button>
           <button
             onClick={() => setZoomLevel((prev) => Math.min(4.5, prev + 0.4))}
-            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
+            className="p-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
             title="Zoom Out"
           >
-            <ZoomOut className="w-3.5 h-3.5" />
+            <ZoomOut className="w-3 h-3" />
           </button>
           <button
             onClick={() => {
-              setZoomLevel(3.2);
+              setZoomLevel(3.0);
               setSelectedAngle('auto');
             }}
-            className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
+            className="p-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-gray-300 hover:text-white transition-colors"
             title="Reset Camera"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3 h-3" />
           </button>
         </div>
 
@@ -385,9 +400,9 @@ export default function ThreeCharacterStudio({
         <button
           onClick={onTriggerRoast}
           disabled={isLoadingRoast}
-          className="absolute bottom-3 right-3 py-1.5 px-3.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 active:scale-95 text-black text-xs font-black tracking-wide shadow-lg shadow-orange-500/30 flex items-center gap-1.5 transition-all z-10 uppercase"
+          className="absolute bottom-2.5 right-3 py-1.5 px-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 active:scale-95 text-black text-[11px] font-black tracking-wide shadow-lg shadow-orange-500/30 flex items-center gap-1.5 transition-all z-10 uppercase"
         >
-          <Flame className={`w-3.5 h-3.5 fill-current ${isLoadingRoast ? 'animate-spin' : ''}`} />
+          <Flame className={`w-3 h-3 fill-current ${isLoadingRoast ? 'animate-spin' : ''}`} />
           <span>{isLoadingRoast ? 'Roasting...' : 'Roast Form'}</span>
         </button>
       </div>
@@ -400,7 +415,7 @@ export default function ThreeCharacterStudio({
             <button
               key={preset.id}
               onClick={() => setSelectedAngle(preset.id)}
-              className={`flex-1 py-1.5 px-1 rounded-xl text-[10px] font-bold font-mono transition-all text-center flex flex-col items-center justify-center ${
+              className={`flex-1 py-1 px-1 rounded-xl text-[10px] font-bold font-mono transition-all text-center flex flex-col items-center justify-center ${
                 isSelected
                   ? 'bg-white dark:bg-zinc-900 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-200/50 dark:border-zinc-700/60'
                   : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white'
@@ -413,34 +428,34 @@ export default function ThreeCharacterStudio({
       </div>
 
       {/* ── FitCraft Muscle Anatomy Card ── */}
-      <div className="bg-slate-50 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800 rounded-2xl p-3.5 space-y-2 shadow-sm">
-        <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-500 dark:text-zinc-400">
+      <div className="bg-slate-50 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800 rounded-2xl p-3 space-y-1.5 shadow-sm">
+        <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-500 dark:text-zinc-400">
           <span className="flex items-center gap-1">
-            <Activity className="w-3.5 h-3.5 text-cyan-500" />
+            <Activity className="w-3 h-3 text-cyan-500" />
             TARGET BIOMECHANICS
           </span>
           <span className="text-orange-500 font-bold">{currentConfig.targetDepth}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-white dark:bg-zinc-800/60 p-2 rounded-xl border border-slate-100 dark:border-zinc-700/40">
-            <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-zinc-500 mb-0.5">Primary Muscles</div>
-            <div className="font-semibold text-slate-800 dark:text-zinc-200">{currentConfig.primaryMuscles.join(', ')}</div>
+          <div className="bg-white dark:bg-zinc-800/60 p-1.5 rounded-xl border border-slate-100 dark:border-zinc-700/40">
+            <div className="text-[9px] font-bold uppercase text-slate-400 dark:text-zinc-500 mb-0.5">Primary Muscles</div>
+            <div className="font-semibold text-slate-800 dark:text-zinc-200 text-[11px]">{currentConfig.primaryMuscles.join(', ')}</div>
           </div>
-          <div className="bg-white dark:bg-zinc-800/60 p-2 rounded-xl border border-slate-100 dark:border-zinc-700/40">
-            <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-zinc-500 mb-0.5">Recommended Cadence</div>
-            <div className="font-semibold text-slate-800 dark:text-zinc-200">{currentConfig.tempo}</div>
+          <div className="bg-white dark:bg-zinc-800/60 p-1.5 rounded-xl border border-slate-100 dark:border-zinc-700/40">
+            <div className="text-[9px] font-bold uppercase text-slate-400 dark:text-zinc-500 mb-0.5">Recommended Cadence</div>
+            <div className="font-semibold text-slate-800 dark:text-zinc-200 text-[11px]">{currentConfig.tempo}</div>
           </div>
         </div>
       </div>
 
       {/* ── Prominent Coach Roast Speech Bubble ── */}
       {roastData && (
-        <div className="w-full bg-orange-500/10 dark:bg-orange-950/30 border border-orange-500/20 rounded-2xl p-3.5 shadow-sm space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="w-full bg-orange-500/10 dark:bg-orange-950/30 border border-orange-500/20 rounded-2xl p-3 shadow-sm space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-orange-500 fill-current" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-orange-700 dark:text-orange-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700 dark:text-orange-400">
                 Coach Verdict
               </span>
             </div>
@@ -449,7 +464,7 @@ export default function ThreeCharacterStudio({
               className="p-1 rounded-full hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition-colors"
               title="Play voice"
             >
-              <Volume2 className="w-3.5 h-3.5" />
+              <Volume2 className="w-3 h-3" />
             </button>
           </div>
 
@@ -457,7 +472,7 @@ export default function ThreeCharacterStudio({
             "{roastData.roast}"
           </p>
 
-          <div className="text-[11px] text-slate-700 dark:text-orange-200/80 font-medium flex items-center gap-1">
+          <div className="text-[10px] text-slate-700 dark:text-orange-200/80 font-medium flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-orange-500 shrink-0" />
             <span>Cue: {roastData.correction}</span>
           </div>
