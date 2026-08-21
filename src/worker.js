@@ -4,9 +4,13 @@ export default {
 
     // Handle Cloudflare edge API roast route
     if (url.pathname === '/api/roast' && request.method === 'POST') {
+      let character = 'duck';
+      let exercise = 'pushup';
+
       try {
         const body = await request.json();
-        const { exercise = 'pushup', character = 'duck' } = body;
+        if (body.character) character = body.character;
+        if (body.exercise) exercise = body.exercise;
 
         const apiKey = env.GEMINI_API_KEY || "";
         if (apiKey) {
@@ -51,8 +55,7 @@ export default {
         humanoid: { roast: "Bro! Your form is so creative, I thought you were auditioning for an interpretive modern dance troupe!", correction: "Lower down until elbows reach 90-degree flexion.", severity: "savage", issue: "Spinal Interpretive Dance" }
       };
 
-      const char = url.searchParams.get('character') || 'duck';
-      const fallback = fallbacks[char] || fallbacks.duck;
+      const fallback = fallbacks[character] || fallbacks.humanoid;
 
       return new Response(JSON.stringify({
         success: true,

@@ -184,12 +184,13 @@ export default function App() {
     }, 400);
 
     // 3. Asynchronous background AI upgrade (if backend API is reachable)
+    const requestChar = character;
     fetch('/api/roast', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         exercise: currentMove.id,
-        character,
+        character: requestChar,
         videoSource: 'live',
         videoUrl: 'seven-app-form-check',
       }),
@@ -197,7 +198,12 @@ export default function App() {
     .then(r => r.ok ? r.json() : null)
     .then(json => {
       if (json?.success && json?.data?.roast) {
-        setRoastData(json.data);
+        setCharacter(currentChar => {
+          if (currentChar === requestChar) {
+            setRoastData(json.data);
+          }
+          return currentChar;
+        });
       }
     })
     .catch(() => {});
