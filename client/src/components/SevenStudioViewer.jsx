@@ -1,9 +1,9 @@
 import VectorPushupAnimator from './VectorPushupAnimator';
-import ThreeCharacterStudio from './ThreeCharacterStudio';
+import SavageXRayScanner from './SavageXRayScanner';
 import SevenAthleteViewer from './SevenAthleteViewer';
 
 export default function SevenStudioViewer({
-  viewMode = '2d_vector', // '2d_vector' | '3d_mocap' | 'real_athlete'
+  viewMode = '2d_vector', // '2d_vector' | 'form_xray' | 'real_athlete'
   character = 'humanoid',
   exercise = 'pushup',
   isPlaying = true,
@@ -25,11 +25,10 @@ export default function SevenStudioViewer({
     );
   }
 
-  if (viewMode === '3d_mocap') {
+  if (viewMode === 'form_xray') {
     return (
-      <ThreeCharacterStudio
+      <SavageXRayScanner
         character={character}
-        exercise={exercise}
         isPlaying={isPlaying}
         roastData={roastData}
         onTriggerRoast={onTriggerRoast}

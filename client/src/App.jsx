@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Flame, Moon, Sun, ChevronRight, Sparkles, Layers, Box, Camera } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Play, Pause, RotateCcw, Flame, Moon, Sun, Layers, Scan, Camera } from 'lucide-react';
 import SevenStudioViewer from './components/SevenStudioViewer';
 import SevenTimerRing from './components/SevenTimerRing';
 import { sfx } from './utils/audioEffects';
@@ -19,9 +19,9 @@ const INSTRUCTORS = [
 ];
 
 const VIEW_MODES = [
-  { id: '2d_vector', label: '2D Vector (Seven.app)', icon: Layers, desc: 'Ultra-light 60 FPS vector character skins' },
-  { id: '3d_mocap', label: '3D Orbit (FitCraft)', icon: Box, desc: 'Interactive 360° 3D studio' },
-  { id: 'real_athlete', label: 'Real Athlete (Pro)', icon: Camera, desc: 'Authentic gym demonstration' },
+  { id: '2d_vector', label: 'Cartoon Coach', icon: Layers, desc: 'Swappable animated character skins' },
+  { id: 'form_xray', label: 'Savage X-Ray', icon: Scan, desc: 'Biomechanical joint angle & stress scanner' },
+  { id: 'real_athlete', label: 'Pro Athlete', icon: Camera, desc: 'Authentic gym demonstration' },
 ];
 
 const PERSONA_ROASTS = {
@@ -76,7 +76,7 @@ const PERSONA_ROASTS = {
 };
 
 export default function App() {
-  const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | '3d_mocap' | 'real_athlete'
+  const [viewMode, setViewMode] = useState('2d_vector'); // '2d_vector' | 'form_xray' | 'real_athlete'
   const [currentMoveIdx, setCurrentMoveIdx] = useState(0);
   const [character, setCharacter] = useState('vader');
   const [isActive, setIsActive] = useState(false);
@@ -85,6 +85,8 @@ export default function App() {
   const [roastData, setRoastData] = useState(null);
   const [isLoadingRoast, setIsLoadingRoast] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const lastRoastIndexRef = useRef({});
 
   const currentMove = WORKOUT_MOVES[currentMoveIdx];
 
@@ -96,7 +98,6 @@ export default function App() {
         setSecondsLeft((prev) => prev - 1);
       }, 1000);
     } else if (isActive && secondsLeft === 0) {
-      // Set completed, transition to Rest or Next Move
       sfx.playWhistle();
       if (!isRest) {
         setIsRest(true);
@@ -122,30 +123,41 @@ export default function App() {
     setSecondsLeft(currentMove.duration);
   };
 
-  const handleSelectMove = (idx) => {
-    setCurrentMoveIdx(idx);
-    setIsActive(false);
-    setIsRest(false);
-    setSecondsLeft(WORKOUT_MOVES[idx].duration);
-    setRoastData(null);
-  };
-
   const speakRoast = useCallback((text) => {
-    if ('speechSynthesis' in window && text) {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.05;
-      u.pitch = character === 'duck' ? 1.45 : character === 'vader' ? 0.65 : character === 'lego' ? 1.15 : 1.0;
-      window.speechSynthesis.speak(u);
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window && text) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.05;
+        u.pitch = character === 'duck' ? 1.45 : character === 'vader' ? 0.65 : character === 'lego' ? 1.15 : 1.0;
+        window.speechSynthesis.speak(u);
+      }
+    } catch (speechErr) {
+      console.warn('Speech synthesis bypassed:', speechErr);
     }
   }, [character]);
+
+  const getRandomRoastForPersona = (personaId) => {
+    const list = PERSONA_ROASTS[personaId] || PERSONA_ROASTS.humanoid;
+    const lastIdx = lastRoastIndexRef.current[personaId] ?? -1;
+    let nextIdx = Math.floor(Math.random() * list.length);
+    if (nextIdx === lastIdx && list.length > 1) {
+      nextIdx = (nextIdx + 1) % list.length;
+    }
+    lastRoastIndexRef.current[personaId] = nextIdx;
+    return list[nextIdx];
+  };
 
   const handleFetchRoast = async () => {
     setIsLoadingRoast(true);
     if (character === 'vader') sfx.playLightsaber();
     else sfx.playWhistle();
 
+    // Instant, safe, non-crashing roast retrieval
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
+
       const res = await fetch('/api/roast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,27 +167,40 @@ export default function App() {
           videoSource: 'live',
           videoUrl: 'seven-app-form-check',
         }),
+        signal: controller.signal,
       });
-      const json = await res.json();
-      if (json.success) {
-        setRoastData(json.data);
-        speakRoast(`${json.data.roast} Cue: ${json.data.correction}`);
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success && json?.data?.roast) {
+          setRoastData(json.data);
+          speakRoast(`${json.data.roast} Cue: ${json.data.correction}`);
+          setIsLoadingRoast(false);
+          return;
+        }
       }
     } catch (err) {
-      console.warn('Roast fetch fallback:', err);
-      const list = PERSONA_ROASTS[character] || PERSONA_ROASTS.humanoid;
-      const randomRoast = list[Math.floor(Math.random() * list.length)];
-      const fallbackData = {
-        roast: randomRoast,
-        correction: `Maintain a rigid 180° spinal plank and lower down until elbows reach 90° flexion.`,
-        severity: 'savage',
-        issue: 'cadence and depth',
-      };
-      setRoastData(fallbackData);
-      speakRoast(`${fallbackData.roast} Cue: ${fallbackData.correction}`);
-    } finally {
-      setIsLoadingRoast(false);
+      // Quietly continue to rich instant fallback
     }
+
+    // Fallback using rich, non-repeating hilarious roast library
+    const randomRoast = getRandomRoastForPersona(character);
+    const fallbackData = {
+      roast: randomRoast,
+      correction: character === 'duck' 
+        ? "Quack tight! Lock wings at 45 degrees and don't let tail feathers droop." 
+        : character === 'vader' 
+        ? "Channel dark side discipline: maintain a rigid horizontal spinal line." 
+        : character === 'lego'
+        ? "Snap core into a rigid 180-degree plate. Zero loose bricks allowed."
+        : "Lower down with 2-second tempo until elbows reach 90-degree flexion.",
+      severity: 'savage',
+      issue: 'cadence and depth',
+    };
+    setRoastData(fallbackData);
+    speakRoast(`${fallbackData.roast} Cue: ${fallbackData.correction}`);
+    setIsLoadingRoast(false);
   };
 
   return (
@@ -194,7 +219,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Dark Mode Toggle */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-2 rounded-full bg-slate-200/70 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-700 transition-colors"
@@ -205,7 +229,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* ── Architecture Comparison Switcher (Path 1 vs Path 2) ── */}
+        {/* ── Visual Mode Switcher (Cartoon vs Savage X-Ray vs Real Athlete) ── */}
         <div className="bg-slate-200/70 dark:bg-zinc-900 border border-slate-300/60 dark:border-zinc-800 rounded-2xl p-1 flex items-center gap-1 shadow-inner">
           {VIEW_MODES.map((mode) => {
             const isSelected = viewMode === mode.id;
@@ -222,7 +246,7 @@ export default function App() {
                 title={mode.desc}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{mode.label.split(' ')[0]} {mode.label.split(' ')[1]}</span>
+                <span className="truncate">{mode.label}</span>
               </button>
             );
           })}
@@ -270,7 +294,7 @@ export default function App() {
             </p>
           </div>
 
-          {/* Dual-Mode Studio Display (2D Vector vs 3D Orbit vs Real Athlete) */}
+          {/* Studio Display: Vector Cartoon vs Savage X-Ray vs Real Athlete */}
           <SevenStudioViewer
             viewMode={viewMode}
             character={character}
@@ -337,7 +361,7 @@ export default function App() {
 
       {/* ── Footer ── */}
       <footer className="text-center py-4 text-[11px] text-slate-400 dark:text-zinc-600">
-        Seven: Comical Edition • 2D Vector & 3D Mocap Comparison • Built with Gemini 3.6 Flash
+        Seven: Comical Edition • 4 Swappable Skins & Savage X-Ray HUD • Built with Gemini 3.6 Flash
       </footer>
     </div>
   );
