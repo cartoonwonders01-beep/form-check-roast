@@ -1,3 +1,4 @@
+import SevenAthleteViewer from './SevenAthleteViewer';
 import ThreeCharacterStudio from './ThreeCharacterStudio';
 
 export default function SevenStudioViewer({
@@ -10,14 +11,25 @@ export default function SevenStudioViewer({
 }) {
   return (
     <div className="w-full">
-      <ThreeCharacterStudio
-        character={character}
-        exercise={exercise}
-        isPlaying={isPlaying}
-        roastData={roastData}
-        onTriggerRoast={onTriggerRoast}
-        isLoadingRoast={isLoadingRoast}
-      />
+      {character === 'humanoid' ? (
+        <SevenAthleteViewer
+          exercise={exercise}
+          isPlaying={isPlaying}
+          roastData={roastData}
+          onTriggerRoast={onTriggerRoast}
+          isLoadingRoast={isLoadingRoast}
+          character={character}
+        />
+      ) : (
+        <ThreeCharacterStudio
+          character={character}
+          exercise={exercise}
+          isPlaying={isPlaying}
+          roastData={roastData}
+          onTriggerRoast={onTriggerRoast}
+          isLoadingRoast={isLoadingRoast}
+        />
+      )}
     </div>
   );
 }
