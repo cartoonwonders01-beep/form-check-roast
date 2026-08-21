@@ -141,6 +141,8 @@ export default function ThreeCharacterStudio({
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(0.68, 0.68, 0.68);
+        // Correct root orientation so model is right-side up
+        model.rotation.z = Math.PI;
         model.position.set(0, 0, 0);
 
         model.traverse((child) => {
@@ -226,7 +228,7 @@ export default function ThreeCharacterStudio({
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. SKELETAL MOVEMENT LOOP (Right-Side-Up Calibration) ─────────
+    // ── 6. SKELETAL MOVEMENT LOOP ─────────────────────────────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -258,65 +260,61 @@ export default function ThreeCharacterStudio({
         const head = b['head'];
 
         if (exercise === 'squat') {
-          // Standing Squat: Feet planted on floor (-0.52), head pointing up
-          modelRoot.position.set(0, -0.52 - k * 0.30, 0);
+          // Standing Squat: Head at top, feet on floor
+          modelRoot.position.set(0, -0.48 - k * 0.30, 0);
           modelRoot.rotation.set(0, 0, 0);
 
-          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 22);
-          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 8);
-          if (head) head.rotation.x = THREE.MathUtils.degToRad(-k * 14);
+          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(-k * 22);
+          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(-k * 8);
+          if (head) head.rotation.x = THREE.MathUtils.degToRad(k * 14);
 
-          // Thighs bend forward (positive X in Soldier skeleton), calves bend back
-          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(k * 88);
-          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(k * 88);
-          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(-k * 105);
-          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(-k * 105);
+          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 88);
+          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(-k * 88);
+          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(k * 105);
+          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(k * 105);
 
-          if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(-k * 75);
-          if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(-k * 75);
+          if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 75);
+          if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 75);
         } else if (exercise === 'pushup') {
-          // Horizontal Plank on Floor
           modelRoot.position.set(0, -0.42 + (1 - k) * 0.22, 0);
-          modelRoot.rotation.set(THREE.MathUtils.degToRad(-85), 0, 0);
+          modelRoot.rotation.set(THREE.MathUtils.degToRad(85), 0, 0);
 
           if (hips) hips.rotation.set(0, 0, 0);
           if (spine) spine.rotation.set(0, 0, 0);
-          if (head) head.rotation.x = THREE.MathUtils.degToRad(15);
+          if (head) head.rotation.x = THREE.MathUtils.degToRad(-15);
 
-          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(20 - k * 52), 0, THREE.MathUtils.degToRad(25 + k * 30));
-          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(20 - k * 52), 0, THREE.MathUtils.degToRad(-25 - k * 30));
-          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(-k * 88);
-          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(-k * 88);
+          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(25 + k * 30));
+          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-20 + k * 52), 0, THREE.MathUtils.degToRad(-25 - k * 30));
+          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
+          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(k * 88);
         } else if (exercise === 'situp') {
-          // Supine Sit-up
           modelRoot.position.set(0, -0.48, 0);
-          modelRoot.rotation.set(THREE.MathUtils.degToRad(85), 0, 0);
-
-          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(-k * 70);
-          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(-k * 22);
-          if (head) head.rotation.x = THREE.MathUtils.degToRad(-k * 24);
-
-          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(-55);
-          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(-55);
-          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(65);
-          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(65);
-
-          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-110), 0, THREE.MathUtils.degToRad(35));
-          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-110), 0, THREE.MathUtils.degToRad(-35));
-          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(-55);
-          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(-55);
-        } else {
-          // Plank Hold on Floor
-          modelRoot.position.set(0, -0.42, 0);
           modelRoot.rotation.set(THREE.MathUtils.degToRad(-85), 0, 0);
+
+          if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
+          if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 22);
+          if (head) head.rotation.x = THREE.MathUtils.degToRad(k * 24);
+
+          if (leftUpLeg) leftUpLeg.rotation.x = THREE.MathUtils.degToRad(55);
+          if (rightUpLeg) rightUpLeg.rotation.x = THREE.MathUtils.degToRad(55);
+          if (leftLeg) leftLeg.rotation.x = THREE.MathUtils.degToRad(-65);
+          if (rightLeg) rightLeg.rotation.x = THREE.MathUtils.degToRad(-65);
+
+          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(110), 0, THREE.MathUtils.degToRad(35));
+          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(110), 0, THREE.MathUtils.degToRad(-35));
+          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(55);
+          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
+        } else {
+          modelRoot.position.set(0, -0.42, 0);
+          modelRoot.rotation.set(THREE.MathUtils.degToRad(85), 0, 0);
 
           const breathing = Math.sin(time * 6) * 0.006;
           if (spine) spine.position.y = breathing;
 
-          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(-15), 0, THREE.MathUtils.degToRad(20));
-          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(-15), 0, THREE.MathUtils.degToRad(-20));
-          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(-85);
-          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(-85);
+          if (leftArm) leftArm.rotation.set(THREE.MathUtils.degToRad(15), 0, THREE.MathUtils.degToRad(20));
+          if (rightArm) rightArm.rotation.set(THREE.MathUtils.degToRad(15), 0, THREE.MathUtils.degToRad(-20));
+          if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(85);
+          if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(85);
         }
       }
 
