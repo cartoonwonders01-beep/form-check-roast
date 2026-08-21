@@ -13,7 +13,7 @@ const EXERCISE_CONFIG = {
     tempo: '2s Down • 1s Pause • 1s Up'
   },
   squat: {
-    title: 'Air Squats',
+    title: 'Squats',
     primaryMuscles: ['Quadriceps', 'Gluteus Maximus'],
     secondaryMuscles: ['Hamstrings', 'Core Stabilizers'],
     optimalAngle: 'iso',
@@ -57,7 +57,6 @@ export default function ThreeCharacterStudio({
   const containerRef = useRef(null);
   const [selectedAngle, setSelectedAngle] = useState('auto');
   const [zoomLevel, setZoomLevel] = useState(3.0);
-  const [loaded, setLoaded] = useState(false);
 
   const targetCamPosRef = useRef(new THREE.Vector3(0, 1.0, 3.0));
   const targetLookAtRef = useRef(new THREE.Vector3(0, 0.0, 0));
@@ -76,7 +75,7 @@ export default function ThreeCharacterStudio({
     const width = container.clientWidth || 380;
     const height = container.clientHeight || 260;
 
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
     camera.position.set(0, 1.0, 3.0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -130,8 +129,8 @@ export default function ThreeCharacterStudio({
     scene.add(gridHelper);
 
     // ── 3. LOAD RIGGED 3D HUMAN SKELETON MODEL ────────────────────────
-    const modelGroup = new THREE.Group();
-    scene.add(modelGroup);
+    const modelRoot = new THREE.Group();
+    scene.add(modelRoot);
 
     const b = {};
     let isRigReady = false;
@@ -143,7 +142,7 @@ export default function ThreeCharacterStudio({
       modelPath,
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(0.75, 0.75, 0.75);
+        model.scale.set(0.68, 0.68, 0.68);
         model.position.set(0, 0, 0);
 
         model.traverse((child) => {
@@ -161,34 +160,35 @@ export default function ThreeCharacterStudio({
           }
         });
 
-        modelGroup.add(model);
+        modelRoot.add(model);
         isRigReady = true;
-        setLoaded(true);
       },
       undefined,
       (err) => console.warn('GLB load error:', err)
     );
 
-    // ── 4. CAMERA PRESETS POSITION CONFIG ─────────────────────────────
+    // ── 4. CAMERA PRESETS POSITION CONFIG (Centered Calibration) ──────
     const updateCameraTarget = () => {
       const z = zoomLevel / 3.0;
       switch (effectiveAngle) {
         case 'side':
-          targetCamPosRef.current.set(2.8 * z, 0.3, 0.0);
-          targetLookAtRef.current.set(0, -0.15, 0);
+          // Centered side profile with zero clipping
+          targetCamPosRef.current.set(2.8 * z, 0.4, 0.0);
+          targetLookAtRef.current.set(0, -0.1, 0);
           break;
         case 'front':
-          targetCamPosRef.current.set(0, 0.4, 2.8 * z);
-          targetLookAtRef.current.set(0, -0.15, 0);
+          targetCamPosRef.current.set(0, 0.5, 2.8 * z);
+          targetLookAtRef.current.set(0, -0.1, 0);
           break;
         case 'top':
-          targetCamPosRef.current.set(1.5 * z, 2.4 * z, 1.5 * z);
-          targetLookAtRef.current.set(0, -0.2, 0);
+          targetCamPosRef.current.set(1.5 * z, 2.5 * z, 1.5 * z);
+          targetLookAtRef.current.set(0, -0.15, 0);
           break;
         case 'iso':
         default:
-          targetCamPosRef.current.set(2.0 * z, 0.6, 2.0 * z);
-          targetLookAtRef.current.set(0, -0.15, 0);
+          // 45-degree Quarter View
+          targetCamPosRef.current.set(2.1 * z, 0.7, 2.1 * z);
+          targetLookAtRef.current.set(0, -0.1, 0);
           break;
       }
     };
@@ -230,7 +230,7 @@ export default function ThreeCharacterStudio({
       return Math.pow(s, 1.15);
     };
 
-    // ── 6. SKELETAL MOVEMENT LOOP ─────────────────────────────────────
+    // ── 6. SKELETAL MOVEMENT LOOP (Centered Anatomy) ──────────────────
     const animate = () => {
       reqId = requestAnimationFrame(animate);
 
@@ -240,7 +240,7 @@ export default function ThreeCharacterStudio({
 
       camera.position.lerp(targetCamPosRef.current, 0.08);
       camera.lookAt(targetLookAtRef.current);
-      modelGroup.rotation.y = manualRotY;
+      modelRoot.rotation.y = manualRotY;
 
       const rawCycle = (Math.sin(time) + 1) / 2;
       const k = humanCadence(rawCycle);
@@ -262,9 +262,9 @@ export default function ThreeCharacterStudio({
         const head = b['head'];
 
         if (exercise === 'pushup') {
-          // ── PUSH-UP ──
-          modelGroup.position.set(0, -0.22 + (1 - k) * 0.26, 0);
-          modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
+          // Centered Horizontal Plank along Z
+          modelRoot.position.set(0, -0.26 + (1 - k) * 0.26, 0.35);
+          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           if (hips) hips.rotation.set(0, 0, 0);
           if (spine) spine.rotation.set(0, 0, 0);
@@ -278,9 +278,9 @@ export default function ThreeCharacterStudio({
           if (leftFoot) leftFoot.rotation.x = THREE.MathUtils.degToRad(75);
           if (rightFoot) rightFoot.rotation.x = THREE.MathUtils.degToRad(75);
         } else if (exercise === 'squat') {
-          // ── SQUAT ──
-          modelGroup.position.set(0, -0.48 - k * 0.34, 0);
-          modelGroup.rotation.x = 0;
+          // Centered Squat
+          modelRoot.position.set(0, -0.48 - k * 0.34, 0);
+          modelRoot.rotation.x = 0;
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 26);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 10);
@@ -294,9 +294,9 @@ export default function ThreeCharacterStudio({
           if (leftArm) leftArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
           if (rightArm) rightArm.rotation.x = THREE.MathUtils.degToRad(k * 82);
         } else if (exercise === 'situp') {
-          // ── SIT-UP ──
-          modelGroup.position.set(0, -0.32, 0);
-          modelGroup.rotation.x = THREE.MathUtils.degToRad(-82);
+          // Centered Sit-up
+          modelRoot.position.set(0, -0.32, 0.25);
+          modelRoot.rotation.x = THREE.MathUtils.degToRad(-82);
 
           if (spine) spine.rotation.x = THREE.MathUtils.degToRad(k * 70);
           if (spine1) spine1.rotation.x = THREE.MathUtils.degToRad(k * 22);
@@ -312,9 +312,9 @@ export default function ThreeCharacterStudio({
           if (leftForeArm) leftForeArm.rotation.x = THREE.MathUtils.degToRad(55);
           if (rightForeArm) rightForeArm.rotation.x = THREE.MathUtils.degToRad(55);
         } else {
-          // ── PLANK ──
-          modelGroup.position.set(0, -0.22, 0);
-          modelGroup.rotation.x = THREE.MathUtils.degToRad(82);
+          // Centered Plank
+          modelRoot.position.set(0, -0.26, 0.35);
+          modelRoot.rotation.x = THREE.MathUtils.degToRad(82);
 
           const breathing = Math.sin(time * 6) * 0.006;
           if (spine) spine.position.y = breathing;
@@ -464,7 +464,7 @@ export default function ThreeCharacterStudio({
               className="p-1 rounded-full hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition-colors"
               title="Play voice"
             >
-              <Volume2 className="w-3 h-3" />
+              <Volume2 className="w-3.5 h-3.5" />
             </button>
           </div>
 
