@@ -1,0 +1,13 @@
+{
+  "routes": [
+    {
+      "routePath": "/api/roast",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/roast.js:onRequestPost"
+      ]
+    }
+  ],
+  "baseURL": "/"
+}
