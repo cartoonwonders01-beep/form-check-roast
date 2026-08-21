@@ -1,14 +1,6 @@
-import { useEffect, useRef } from 'react';
 import { Flame, Volume2, Sparkles, User, Box, Swords } from 'lucide-react';
+import SevenVectorHumanoid from './SevenVectorHumanoid';
 import ThreeCharacterStudio from './ThreeCharacterStudio';
-
-// Curated high-definition clean exercise video loops (100% real human athlete)
-const HUMAN_EXERCISE_VIDEOS = {
-  pushup: 'https://assets.mixkit.co/videos/preview/mixkit-man-doing-push-ups-in-a-gym-42657-large.mp4',
-  squat: 'https://assets.mixkit.co/videos/preview/mixkit-athlete-doing-squats-in-a-gym-42658-large.mp4',
-  situp: 'https://assets.mixkit.co/videos/preview/mixkit-man-doing-sit-ups-on-a-mat-42655-large.mp4',
-  plank: 'https://assets.mixkit.co/videos/preview/mixkit-man-doing-plank-exercise-in-a-gym-42659-large.mp4',
-};
 
 export default function SevenStudioViewer({
   character = 'humanoid',
@@ -18,20 +10,6 @@ export default function SevenStudioViewer({
   onTriggerRoast,
   isLoadingRoast
 }) {
-  const videoRef = useRef(null);
-
-  // Sync video play/pause with workout timer
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isPlaying) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [isPlaying, exercise]);
-
   const speakRoast = () => {
     if ('speechSynthesis' in window && roastData?.roast) {
       window.speechSynthesis.cancel();
@@ -43,33 +21,21 @@ export default function SevenStudioViewer({
   };
 
   const isRealHuman = character === 'humanoid';
-  const videoSrc = HUMAN_EXERCISE_VIDEOS[exercise] || HUMAN_EXERCISE_VIDEOS.pushup;
 
   return (
     <div className="space-y-3 w-full">
       {/* ── Studio Center Display ── */}
-      <div className="relative w-full h-[280px] flex items-center justify-center bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 overflow-hidden shadow-md group">
-        
+      <div className="relative w-full">
         {isRealHuman ? (
-          /* ── 1. 100% LIFELIKE REAL HUMAN ATHLETE VIDEO LOOP ── */
-          <div className="relative w-full h-full bg-black">
-            <video
-              ref={videoRef}
-              src={videoSrc}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover brightness-95 contrast-105"
-            />
-            {/* Studio vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
-            
-            {/* Real Human Badge */}
-            <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 flex items-center gap-1.5 shadow-sm">
-              <User className="w-3 h-3 text-emerald-400" />
-              <span className="text-[10px] font-mono font-bold tracking-wider text-emerald-300 uppercase">
-                PRO ATHLETE FORM
+          /* ── 1. SEVEN.APP ATHLETIC VECTOR HUMANOID ── */
+          <div className="relative w-full">
+            <SevenVectorHumanoid exercise={exercise} isPlaying={isPlaying} />
+
+            {/* Coach Alex Badge */}
+            <div className="absolute top-3 left-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-200/60 dark:border-zinc-700/60 flex items-center gap-1.5 shadow-sm pointer-events-none">
+              <User className="w-3 h-3 text-orange-500" />
+              <span className="text-[10px] font-mono font-bold tracking-wider text-slate-700 dark:text-zinc-200 uppercase">
+                COACH ALEX • PERFECT FORM
               </span>
             </div>
           </div>
